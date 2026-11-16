@@ -64,3 +64,9 @@ html, body { overflow-x: hidden; }
     box-shadow: 0 -6px 16px rgba(22, 33, 28, .06); z-index: 20; }
   .mobile-question-quick-nav > * { max-width: none; }
 }
+
+/* AI features removed (static site has no AI backend). */
+.api-status, .question-ai-panel, .ai-usage-note, .slide-ai, .term-ai, .ai-toast,
+.ai-result-backdrop, .api-modal { display: none !important; }
+.essay-ai { grid-template-columns: 1fr !important; }
+.essay-ai button { display: none !important; }
