@@ -1,0 +1,93 @@
+/* Calmer layout: fewer panels above the question, quieter glossary marks, less scrolling. */
+
+/* Glossary terms: keep them tappable, drop the repeated "百科" badges and heavy highlight. */
+.term-inline sup { display: none !important; }
+.term-inline { background: none !important; box-shadow: none !important; border-bottom: 1px dotted #9aa39c !important; text-decoration: none !important; padding: 0 !important; }
+.term-inline:hover { border-bottom-color: var(--ink, #16211c) !important; }
+
+/* Question bank: tabs become one row of compact chips. */
+.practice-tabs { display: flex !important; flex-wrap: nowrap; gap: 8px; overflow-x: auto; border: 0 !important; background: none !important; padding: 2px 0 6px; scrollbar-width: none; }
+.practice-tabs::-webkit-scrollbar { display: none; }
+.practice-tabs button { flex: 0 0 auto; display: inline-flex !important; align-items: baseline; gap: 6px; padding: 7px 12px !important; border: 1px solid var(--line, #d7d5cb) !important; border-radius: 999px; min-height: 0; height: auto; white-space: nowrap; grid-column: auto !important; }
+.practice-tabs button b { font-size: 14px !important; line-height: 1.2; }
+.practice-tabs button span { font-size: 12px !important; letter-spacing: 0; }
+.practice-tabs button.active::after, .practice-tabs button.active::before { display: none !important; }
+
+/* Toolbar: keep only the chapter filter. */
+.bank-toolbar { background: none !important; border: 0 !important; padding: 0 !important; margin: 8px 0 12px !important; display: block !important; }
+.bank-toolbar > div { display: none !important; }
+.bank-toolbar label { display: flex !important; align-items: center; gap: 10px; width: 100%; margin: 0 !important; font-size: 12px; white-space: nowrap; }
+.bank-toolbar select { flex: 1; min-width: 0; height: 40px; }
+
+/* Score strip: one slim line, without the rule badges. */
+.exam-score-strip { padding: 8px 14px !important; margin: 0 0 12px !important; min-height: 0 !important; align-items: center; }
+.exam-score-strip > p { display: none !important; }
+.exam-score-strip strong { font-size: 18px !important; line-height: 1 !important; }
+
+/* Question card takes the full width; the static "how saving works" panel is removed. */
+.quiz-layout { grid-template-columns: minmax(0, 1fr) !important; max-width: 980px; margin: 0 auto; }
+.quiz-layout aside.strategy { display: none !important; }
+.source-file { display: none !important; }
+.quiz-card { padding: 26px 32px !important; }
+.question-meta { margin-bottom: 14px !important; }
+.bilingual-question { margin: 0 0 16px !important; }
+.bilingual-question > span { font-size: 24px !important; line-height: 1.35 !important; letter-spacing: 0 !important; }
+.bilingual-question > small { font-size: 14px !important; margin-top: 8px !important; line-height: 1.6; }
+.options { gap: 8px !important; }
+.options button { padding: 12px 16px !important; }
+.workspace.practice, .scenario-workspace { padding-top: 18px !important; }
+.scenario-card { max-width: 900px; margin-left: auto; margin-right: auto; }
+.scenario-card h2 { font-size: 24px !important; line-height: 1.35 !important; }
+
+/* Home and glossary cards size to their content instead of a fixed tall box. */
+.chapter { min-height: 0 !important; }
+.glossary-card { min-height: 0 !important; }
+
+@media (width <= 700px) {
+  header { height: 52px !important; }
+  .study-progress-dock { position: static !important; min-height: 0 !important; padding: 8px 14px !important; top: auto !important; }
+  .study-progress-copy strong { font-size: 16px !important; }
+  .review-actions button { padding: 6px 10px !important; }
+  .lesson-index { top: 52px !important; }
+
+  .exam-score-strip { display: none !important; }
+  .quiz-card, .scenario-card { padding: 16px 14px !important; }
+  .question-meta { gap: 6px !important; margin-bottom: 10px !important; }
+  .question-meta .term-hint { font-size: 10px; }
+  .bilingual-question > span { font-size: 18px !important; }
+  .bilingual-question > small { font-size: 13px !important; }
+  .options button { padding: 10px 12px !important; gap: 10px !important; grid-template-columns: 18px minmax(0, 1fr) !important; min-height: 46px; }
+  .options .option-copy > span { font-size: 14.5px; line-height: 1.5; }
+  .options .option-copy > small { font-size: 12px; line-height: 1.5; margin-top: 4px; }
+  .quiz-foot > span, .scenario-foot > span { display: none !important; }
+  .quiz-foot, .scenario-foot, .scenario-workspace { padding-bottom: 64px !important; }
+  .scenario-story { padding: 14px !important; margin-bottom: 14px !important; }
+  .scenario-story p { font-size: 15.5px !important; line-height: 1.6 !important; }
+  .scenario-card h2 { font-size: 19px !important; margin: 0 0 12px !important; }
+
+  .mobile-question-quick-nav { padding: 6px 10px !important; }
+  .mobile-question-quick-nav button { height: 42px !important; min-height: 0 !important; }
+
+  .hero { padding: 28px 18px !important; }
+  .hero h1 { font-size: 34px !important; line-height: 1.05 !important; }
+  .chapter { padding: 16px !important; }
+  .chapter-grid { gap: 10px !important; }
+  .glossary-card { padding: 14px !important; }
+  .glossary-card footer { display: none !important; }
+  .glossary-card p { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 0 !important; }
+  .glossary-card h2 { font-size: 17px !important; }
+  .glossary-card h3 { font-size: 14px !important; margin-bottom: 6px !important; }
+}
+
+/* Chinese translation of the question reads as one sentence. */
+.bilingual-question > small { display: block !important; }
+.bilingual-question > small > * { display: inline !important; }
+.bilingual-question > small > b { display: inline-block !important; margin-right: 6px; }
+.options button { align-items: center !important; }
+
+/* Chapter cards: footer flows after the text so shorter cards do not overlap. */
+.chapter footer { position: static !important; margin-top: 14px; }
+@media (width <= 700px) {
+  .chapter h3 { margin-top: 14px !important; font-size: 19px !important; }
+  .section-head { margin-bottom: 14px !important; }
+}
