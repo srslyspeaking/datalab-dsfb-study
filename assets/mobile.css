@@ -1,6 +1,6 @@
 /* Mobile & small-screen fixes layered on top of the main stylesheet. */
 html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
-html, body { overflow-x: hidden; }
+html, body { overflow-x: clip; }
 .shell { min-width: 0; overflow-x: clip; }
 
 /* Option text: keep inline glossary terms inside the sentence instead of
@@ -70,3 +70,4 @@ html, body { overflow-x: hidden; }
 .ai-result-backdrop, .api-modal { display: none !important; }
 .essay-ai { grid-template-columns: 1fr !important; }
 .essay-ai button { display: none !important; }
+[data-noai] { display: none !important; }
