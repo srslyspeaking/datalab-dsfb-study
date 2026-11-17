@@ -140,6 +140,13 @@ details.sec summary{cursor:pointer;font-weight:600;padding:8px 0;color:var(--mut
 .chcard em{font-style:normal;color:var(--bad,#b5473a)}
 .chcard i{position:absolute;left:0;bottom:0;height:3px;background:var(--ok,#2f7d4f)}
 .chcard.on{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink);background:var(--cream)}
+.synch{margin:16px 0 4px;font-size:15px}
+.tokin{flex:1 1 200px;min-width:0;border:1px solid var(--line);border-radius:999px;padding:9px 14px;font-size:14px;background:#fff}
+.syncline{margin:6px 0 8px;font-size:14px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.syncline #syncStatus{color:var(--muted);font-size:13px}
+.syncdot{display:inline-block;width:8px;height:8px;border-radius:50%;background:transparent;vertical-align:middle}
+.syncdot.ok{background:var(--ok,#2f7d4f)}.syncdot.err{background:var(--bad,#b5473a)}
+#openSettings{position:relative}#openSettings .syncdot{position:absolute;right:2px;top:2px}
 @media(max-width:640px){.chgrid{grid-template-columns:1fr 1fr}.chcard{padding:9px 10px 11px}.chcard b{font-size:13px}.chbtn{flex:1 1 100%;text-align:left}}
 @media(max-width:640px){.svgw svg{min-width:440px}}
 ul.fx{margin:6px 0 0;padding:10px 14px 10px 30px;background:var(--cream);border-radius:8px;font-size:13.5px;line-height:1.75}
@@ -197,12 +204,14 @@ figure.slide figcaption{font-size:12px;color:var(--muted);margin-top:6px}
   <label class="set"><span>随机顺序<small>默认打开；也可在题目上方切换“随机 / 顺序”</small></span><span class="sw"><input type="checkbox" data-set="shuffle"><i></i></span></label>
   <label class="set"><span>掌握标准<small>错题连续答对几轮后自动移到“已掌握”</small></span>
     <select class="select" data-set="master"><option value="1">1 轮</option><option value="2">2 轮</option><option value="3">3 轮</option></select></label>
+  <h4 class="synch">☁ 电脑 / 手机同步</h4>
+  <div id="syncBox"></div>
   <div class="row">
     <button class="btn ghost" id="exportBtn">导出进度</button>
     <label class="btn ghost" style="cursor:pointer">导入进度<input type="file" accept="application/json" id="importFile" hidden></label>
     <button class="btn ghost" id="resetBtn">清空所有记录</button>
   </div>
-  <p class="kbd">进度自动保存在这个浏览器里。换电脑或手机时，先在这里“导出进度”，再到新设备上“导入”。<br>
+  <p class="kbd">进度自动保存在这个浏览器里；开了上面的同步就会在各设备间自动合并。没开同步时，也可以“导出进度”再到另一台设备“导入”。<br>
   键盘：<code>A</code>–<code>D</code> 或 <code>1</code>–<code>4</code> 选择 · <code>←</code> <code>→</code> 换题 · <code>空格</code> 看答案 · <code>R</code> 重做本题 · <code>S</code> 收藏。手机上左右滑动换题。</p>
   <div class="row"><button class="btn" id="closeSettings">完成</button></div>
 </div></div>
@@ -230,6 +239,7 @@ function load(){
   s.recs = s.recs || {}; s.set = Object.assign({ zh:true, reveal:false, shuffle:true, master:2 }, s.set || {});
   if (!s.shuf1) { s.shuf1 = 1; s.set.shuffle = true; }
   s.f = Object.assign({ ch:'all', src:[], st:'all' }, s.f || {}); s.pos = s.pos || {};
+  Object.keys(s.recs).forEach(function(id){ var r = s.recs[id]; if (r && !r.u) r.u = r.last || 1; });
   return s;
 }
 function migrate(s){
@@ -246,7 +256,12 @@ function migrate(s){
 function rec(s, id){ s = s || S; return s.recs[id] || (s.recs[id] = { n:0, w:0, c:0, st:0 }); }
 function peek(id){ return S.recs[id]; }
 var saveT = null;
-function save(){ clearTimeout(saveT); saveT = setTimeout(function(){ try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e) { toast('浏览器存储空间不足，进度可能没有保存'); } }, 150); }
+var SNAP = {};
+function stamp(){ var now = Date.now(), ch = 0; Object.keys(S.recs).forEach(function(id){ var r = S.recs[id], u = r.u; delete r.u; var j = JSON.stringify(r); r.u = u;
+    if (SNAP[id] !== j) { if (SNAP[id] !== undefined || !u) { r.u = now; ch++; } SNAP[id] = j; } }); return ch; }
+function snapAll(){ SNAP = {}; Object.keys(S.recs).forEach(function(id){ var r = S.recs[id], u = r.u; delete r.u; SNAP[id] = JSON.stringify(r); r.u = u; }); }
+function writeLocal(){ try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e) { toast('浏览器存储空间不足，进度可能没有保存'); } }
+function save(){ clearTimeout(saveT); saveT = setTimeout(function(){ if (stamp()) Sync.dirty(); writeLocal(); }, 150); }
 
 /* session-only: what has been clicked on the question currently shown */
 var cur = null;  // { id, pick, tried:[], first:null, reveal:false, shown:false }
@@ -689,8 +704,93 @@ document.addEventListener('touchstart', function(e){ if (e.touches.length === 1 
 document.addEventListener('touchend', function(e){ if (sx === null) return; var dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy; sx = null;
   if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.8) step(dx < 0 ? 1 : -1); }, { passive:true });
 
+/* ---------- cloud sync via a private GitHub Gist ---------- */
+var Sync = (function(){
+  var SK = 'dsfb-sync-v1', DESC = 'DSFB 刷题进度同步（Data+Lab）', FILE = 'dsfb-progress.json', API = 'https://api.github.com';
+  var cfg = {}; try { cfg = JSON.parse(localStorage.getItem(SK) || '{}') || {}; } catch(e) {}
+  var busy = false, again = false, pushT = 0, status = '';
+  function keep(){ try { localStorage.setItem(SK, JSON.stringify(cfg)); } catch(e) {} }
+  function on(){ return !!cfg.token; }
+  function setStatus(t){ status = t; var el = document.getElementById('syncStatus'); if (el) el.textContent = t; var d = document.getElementById('syncDot'); if (d) { d.className = 'syncdot' + (on() ? (/失败|无效|出错/.test(t) ? ' err' : ' ok') : ''); d.title = on() ? t : ''; } }
+  function hm(t){ var d = new Date(t); return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); }
+  function gh(method, path, body){
+    return fetch(API + path, { method:method, cache:'no-store', headers:{ 'Authorization':'Bearer ' + cfg.token, 'Accept':'application/vnd.github+json' }, body: body ? JSON.stringify(body) : undefined })
+      .then(function(r){ if (r.status === 401) throw new Error('auth'); if (!r.ok) throw new Error('http ' + r.status); return r.status === 204 ? null : r.json(); });
+  }
+  function payload(){ var recs = {}; Object.keys(S.recs).forEach(function(id){ var r = S.recs[id]; if (r && (r.n || r.wb || r.fav || r.m)) recs[id] = r; });
+    return JSON.stringify({ app:'dsfb-practice', v:1, at:Date.now(), resetAt:S.resetAt || 0, recs:recs }); }
+  function findGist(){
+    if (cfg.gist) return Promise.resolve(cfg.gist);
+    return gh('GET', '/gists?per_page=100').then(function(list){
+      var g = (list || []).filter(function(x){ return x.description === DESC && x.files && x.files[FILE]; })[0];
+      if (g) return g.id;
+      var files = {}; files[FILE] = { content: payload() };
+      return gh('POST', '/gists', { description:DESC, public:false, files:files }).then(function(n){ return n.id; });
+    }).then(function(id){ cfg.gist = id; keep(); return id; });
+  }
+  function readRemote(id){
+    return gh('GET', '/gists/' + id).then(function(g){ var f = g.files && g.files[FILE]; if (!f) return null;
+      if (!f.truncated) return f.content;
+      return fetch(f.raw_url, { cache:'no-store' }).then(function(r){ return r.text(); }); })
+      .then(function(t){ try { return t ? JSON.parse(t) : null; } catch(e) { return null; } });
+  }
+  function merge(rem){
+    var changed = 0, needPush = false, rr = (rem && rem.recs) || {};
+    var reset = Math.max(S.resetAt || 0, (rem && rem.resetAt) || 0);
+    if (reset > (S.resetAt || 0)) { S.resetAt = reset; Object.keys(S.recs).forEach(function(id){ if ((S.recs[id].u || 0) <= reset) { delete S.recs[id]; changed++; } }); }
+    if ((rem && rem.resetAt || 0) < reset) needPush = true;
+    Object.keys(rr).forEach(function(id){ var b = rr[id], a = S.recs[id]; if (!BY[id] || (b.u || 0) <= reset) return;
+      if (!a || (b.u || 0) > (a.u || 0)) { S.recs[id] = b; changed++; } });
+    Object.keys(S.recs).forEach(function(id){ var a = S.recs[id], b = rr[id]; if ((a.n || a.wb || a.fav || a.m) && (!b || (a.u || 0) > (b.u || 0))) needPush = true; });
+    return { changed:changed, needPush:needPush };
+  }
+  function run(){
+    if (!on()) return Promise.resolve();
+    if (busy) { again = true; return Promise.resolve(); }
+    busy = true; clearTimeout(pushT); setStatus('正在同步…');
+    if (stamp()) writeLocal();
+    var id;
+    return findGist().then(function(g){ id = g; return readRemote(id); }).then(function(rem){
+      if (!rem) { cfg.gist = null; keep(); return findGist().then(function(g){ id = g; return { changed:0, needPush:true }; }); }
+      return merge(rem);
+    }).then(function(m){
+      if (m.changed) { snapAll(); writeLocal(); listCache = null; render(); }
+      if (!m.needPush) return;
+      var files = {}; files[FILE] = { content: payload() };
+      return gh('PATCH', '/gists/' + id, { files:files }).catch(function(e){ if (/404/.test(e.message)) { cfg.gist = null; keep(); } throw e; });
+    }).then(function(){ cfg.last = Date.now(); keep(); setStatus('已同步 · ' + hm(cfg.last)); })
+      .catch(function(e){ setStatus(e.message === 'auth' ? '密钥无效或已过期，请重新连接' : (navigator.onLine === false ? '离线中，联网后会自动同步' : '同步失败，稍后自动重试')); })
+      .then(function(){ busy = false; if (again) { again = false; schedule(1500); } });
+  }
+  function schedule(ms){ if (!on()) return; clearTimeout(pushT); pushT = setTimeout(run, ms); }
+  function connect(token){
+    token = (token || '').trim(); if (!token) { toast('先粘贴密钥'); return; }
+    cfg = { token:token }; keep(); setStatus('正在连接…');
+    return gh('GET', '/gists?per_page=1').then(function(){ toast('已连接，正在合并进度'); renderSync(); return run(); })
+      .catch(function(e){ cfg = {}; keep(); renderSync(); setStatus(e.message === 'auth' ? '密钥无效：请确认复制完整，并勾选了 gist 权限' : '连接失败，检查网络后重试'); });
+  }
+  function disconnect(){ cfg = {}; keep(); renderSync(); setStatus(''); toast('已断开，本机进度保留'); }
+  document.addEventListener('visibilitychange', function(){ if (document.visibilityState === 'visible') schedule(300); });
+  window.addEventListener('online', function(){ schedule(500); });
+  setInterval(function(){ if (document.visibilityState === 'visible') schedule(0); }, 90000);
+  return { on:on, run:run, connect:connect, disconnect:disconnect, dirty:function(){ schedule(2500); }, status:function(){ return status || (cfg.last ? '已同步 · ' + hm(cfg.last) : ''); }, setStatus:setStatus };
+})();
+function renderSync(){
+  var box = $('#syncBox'); if (!box) return;
+  if (Sync.on()) box.innerHTML = '<p class="syncline"><span class="syncdot ok"></span><b>已开启同步</b> <span id="syncStatus">' + esc(Sync.status()) + '</span></p>' +
+    '<div class="row"><button class="btn ghost" id="syncNow">立即同步</button><button class="btn ghost" id="syncOff">断开这台设备</button></div>';
+  else box.innerHTML = '<p class="kbd" style="margin:4px 0 8px">用你自己的 GitHub 账号存一份私密进度，电脑和手机各连接一次，以后自动同步（答题记录、错题本、收藏）。<br>' +
+    '① 打开 <a href="https://github.com/settings/tokens/new?scopes=gist&description=DSFB%20%E5%88%B7%E9%A2%98%E5%90%8C%E6%AD%A5" target="_blank" rel="noopener">GitHub 生成密钥页面</a>（已自动勾选唯一需要的 <code>gist</code> 权限，Expiration 可选 No expiration）→ 拉到底点 Generate token → 复制 <code>ghp_</code> 开头的密钥。<br>' +
+    '② 粘贴到下面点“连接”。手机上用同一个密钥再连一次即可。</p>' +
+    '<div class="row"><input class="tokin" id="syncTok" type="password" autocomplete="off" placeholder="粘贴 ghp_… 密钥"><button class="btn" id="syncGo">连接</button></div>' +
+    '<p class="kbd" id="syncStatus" style="color:var(--bad,#b5473a)">' + esc(Sync.status()) + '</p>';
+  var a = $('#syncNow'); if (a) a.onclick = function(){ Sync.run(); };
+  var b = $('#syncOff'); if (b) b.onclick = Sync.disconnect;
+  var c = $('#syncGo'); if (c) c.onclick = function(){ Sync.connect($('#syncTok').value); };
+}
+
 /* ---------- settings ---------- */
-function openSettings(){ [].forEach.call(document.querySelectorAll('[data-set]'), function(el){ var v = S.set[el.dataset.set]; if (el.type === 'checkbox') el.checked = !!v; else el.value = String(v); }); $('#settings').classList.add('open'); }
+function openSettings(){ renderSync(); [].forEach.call(document.querySelectorAll('[data-set]'), function(el){ var v = S.set[el.dataset.set]; if (el.type === 'checkbox') el.checked = !!v; else el.value = String(v); }); $('#settings').classList.add('open'); }
 function closeSettings(){ $('#settings').classList.remove('open'); }
 $('#openSettings').onclick = openSettings;
 $('#closeSettings').onclick = closeSettings;
@@ -708,13 +808,16 @@ $('#importFile').onchange = function(){ var f = this.files[0]; if (!f) return; v
   rd.readAsText(f); this.value = ''; };
 var resetArmed = false;
 $('#resetBtn').onclick = function(){ if (!resetArmed) { resetArmed = true; this.textContent = '再点一次确认清空'; var b = this; setTimeout(function(){ resetArmed = false; b.textContent = '清空所有记录'; }, 3000); return; }
-  S.recs = {}; S.pos = {}; S.migrated = 0; session = { done:0, ok:0 }; cur = null; listCache = null; save(); closeSettings(); render(); toast('记录已清空'); this.textContent = '清空所有记录'; resetArmed = false; };
+  S.recs = {}; S.pos = {}; S.migrated = 0; S.resetAt = Date.now(); SNAP = {}; Sync.dirty(); session = { done:0, ok:0 }; cur = null; listCache = null; save(); closeSettings(); render(); toast('记录已清空'); this.textContent = '清空所有记录'; resetArmed = false; };
 
 if (S.view !== 'practice' && S.view !== 'wrong' && S.view !== 'fav' && S.view !== 'wbrun' && S.view !== 'favrun') S.view = 'practice';
 function gotoHash(){ var m = /[#&]q=([^&]+)/.exec(location.hash); if (!m) return false; var id = decodeURIComponent(m[1]); if (!BY[id]) return false;
   S.view = 'practice'; S.f = { ch:'all', src:[], st:'all' }; listCache = null; var j = currentList().indexOf(id); if (j < 0) return false; posSet(j); cur = null; render(); return true; }
 window.addEventListener('hashchange', gotoHash);
+snapAll(); stamp();
 if (!gotoHash()) render();
+if ($('#openSettings') && !$('#syncDot')) $('#openSettings').insertAdjacentHTML('beforeend', '<span class="syncdot" id="syncDot"></span>');
+if (Sync.on()) setTimeout(Sync.run, 400);
 if (S.migrated && !S.migratedShown) { toast('已从旧版题库导入 ' + S.migrated + ' 条记录'); S.migratedShown = true; save(); }
 })();
 </script>
