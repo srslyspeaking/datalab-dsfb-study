@@ -126,6 +126,21 @@ details.sec summary{cursor:pointer;font-weight:600;padding:8px 0;color:var(--mut
 .fig h5{margin:0 0 10px}
 .fig svg{margin-bottom:8px}
 .svgw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.chbtn{border:1px solid var(--ink);background:#fff;border-radius:999px;padding:8px 14px;font-size:14px;font-weight:600;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;color:var(--ink)}
+.chbtn.on{background:var(--ink);color:#fff}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:#fff}
+.seg button{border:0;background:none;padding:8px 12px;font-size:13.5px;cursor:pointer;color:var(--muted)}
+.seg button.on{background:var(--ink);color:#fff}
+.chpanel{display:none;margin:-4px 0 12px}
+.chpanel.open{display:block}
+.chgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px}
+.chcard{position:relative;overflow:hidden;text-align:left;border:1px solid var(--line);background:#fff;border-radius:10px;padding:10px 12px 12px;cursor:pointer;display:flex;flex-direction:column;gap:3px;color:var(--ink)}
+.chcard b{font-size:14px}
+.chcard span{font-size:12px;color:var(--muted)}
+.chcard em{font-style:normal;color:var(--bad,#b5473a)}
+.chcard i{position:absolute;left:0;bottom:0;height:3px;background:var(--ok,#2f7d4f)}
+.chcard.on{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink);background:var(--cream)}
+@media(max-width:640px){.chgrid{grid-template-columns:1fr 1fr}.chcard{padding:9px 10px 11px}.chcard b{font-size:13px}.chbtn{flex:1 1 100%;text-align:left}}
 @media(max-width:640px){.svgw svg{min-width:440px}}
 ul.fx{margin:6px 0 0;padding:10px 14px 10px 30px;background:var(--cream);border-radius:8px;font-size:13.5px;line-height:1.75}
 ul.fx li{margin:2px 0}
@@ -179,7 +194,7 @@ figure.slide figcaption{font-size:12px;color:var(--muted);margin-top:6px}
   <h3>设置</h3>
   <label class="set"><span>显示中文翻译<small>题干和选项下面附中文</small></span><span class="sw"><input type="checkbox" data-set="zh"><i></i></span></label>
   <label class="set"><span>答错后直接亮出正确答案<small>关闭时只告诉你“不对”，让你先自己再想</small></span><span class="sw"><input type="checkbox" data-set="reveal"><i></i></span></label>
-  <label class="set"><span>随机顺序<small>打乱当前题目列表的顺序</small></span><span class="sw"><input type="checkbox" data-set="shuffle"><i></i></span></label>
+  <label class="set"><span>随机顺序<small>默认打开；也可在题目上方切换“随机 / 顺序”</small></span><span class="sw"><input type="checkbox" data-set="shuffle"><i></i></span></label>
   <label class="set"><span>掌握标准<small>错题连续答对几轮后自动移到“已掌握”</small></span>
     <select class="select" data-set="master"><option value="1">1 轮</option><option value="2">2 轮</option><option value="3">3 轮</option></select></label>
   <div class="row">
@@ -211,8 +226,9 @@ var S = load();
 function load(){
   var s = null;
   try { s = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch(e) {}
-  if (!s) { s = { recs:{}, set:{ zh:true, reveal:false, shuffle:false, master:2 }, f:{ ch:'all', src:[], st:'all' }, pos:{}, view:'practice', seed:Date.now()%100000, wbSort:'count', wbCh:'all' }; migrate(s); }
-  s.recs = s.recs || {}; s.set = Object.assign({ zh:true, reveal:false, shuffle:false, master:2 }, s.set || {});
+  if (!s) { s = { recs:{}, set:{ zh:true, reveal:false, shuffle:true, master:2 }, f:{ ch:'all', src:[], st:'all' }, pos:{}, view:'practice', seed:Date.now()%100000, wbSort:'count', wbCh:'all' }; migrate(s); }
+  s.recs = s.recs || {}; s.set = Object.assign({ zh:true, reveal:false, shuffle:true, master:2 }, s.set || {});
+  if (!s.shuf1) { s.shuf1 = 1; s.set.shuffle = true; }
   s.f = Object.assign({ ch:'all', src:[], st:'all' }, s.f || {}); s.pos = s.pos || {};
   return s;
 }
@@ -483,16 +499,23 @@ function render(){
   else { nav.style.display = ''; renderPractice(); }
 }
 
+function chStats(l){ var t = 0, d = 0, w = 0; DATA.forEach(function(q){ if (l !== 'all' && q.l !== l) return; t++; var r = peek(q.i); if (r && r.n) { d++; if (r.lr === 'w') w++; } }); return { t:t, d:d, w:w }; }
 function filterBar(){
-  var chOpts = '<option value="all">全部章节</option>' + CH_ORDER.map(function(l){ var n = DATA.filter(function(q){ return q.l === l; }).length; return n ? '<option value="' + l + '"' + (S.f.ch === l ? ' selected' : '') + '>' + CH[l] + '（' + n + '）</option>' : ''; }).join('');
   var st = [['all','全部'],['new','没做过'],['wrong','做错过'],['wb','错题本里']];
-  var nF = S.f.src.length + (S.f.st !== 'all' ? 1 : 0);
-  return '<div class="bar"><select class="select" id="fCh">' + chOpts + '</select>' +
-    st.map(function(x){ return '<button class="chip' + (S.f.st === x[0] ? ' on' : '') + '" data-st="' + x[0] + '">' + x[1] + '</button>'; }).join('') +
+  var curName = S.f.ch === 'all' ? '全部章节' : CH[S.f.ch];
+  var h = '<div class="bar"><button class="chbtn' + (S.chOpen ? ' on' : '') + '" id="chBtn">📚 ' + esc(curName) + ' ▾</button>' +
+    '<span class="seg"><button class="' + (S.set.shuffle ? 'on' : '') + '" data-ord="x">🔀 随机</button><button class="' + (S.set.shuffle ? '' : 'on') + '" data-ord="s">↓ 顺序</button></span>' +
+    (S.set.shuffle ? '<button class="more" data-ord="re" title="重新打乱">⟳ 重新洗牌</button>' : '') + '</div>';
+  h += '<div class="chpanel' + (S.chOpen ? ' open' : '') + '"><div class="chgrid">' +
+    ['all'].concat(CH_ORDER).map(function(l){ var c = chStats(l); if (!c.t) return ''; var pct = Math.round(c.d / c.t * 100);
+      return '<button class="chcard' + (S.f.ch === l ? ' on' : '') + '" data-ch="' + l + '"><b>' + esc(l === 'all' ? '全部章节（混合刷）' : CH[l]) + '</b><span>' + c.d + ' / ' + c.t + ' 题' + (c.w ? ' · <em>' + c.w + ' 错</em>' : '') + '</span><i style="width:' + pct + '%"></i></button>'; }).join('') +
+    '</div></div>';
+  h += '<div class="bar">' + st.map(function(x){ return '<button class="chip' + (S.f.st === x[0] ? ' on' : '') + '" data-st="' + x[0] + '">' + x[1] + '</button>'; }).join('') +
     '<button class="more" id="fMore">题目来源' + (S.f.src.length ? '（' + S.f.src.length + '）' : '') + ' ▾</button></div>' +
     '<div class="filters' + (S.fOpen ? ' open' : '') + '" id="fPanel"><h4>题目来源（不选 = 全部）</h4><div class="row">' +
     SRC_ORDER.map(function(s){ var n = DATA.filter(function(q){ return q.s === s; }).length; return '<button class="chip' + (S.f.src.indexOf(s) >= 0 ? ' on' : '') + '" data-src="' + s + '">' + SRC[s] + '<small>' + n + '</small></button>'; }).join('') +
     '</div></div>';
+  return h;
 }
 
 function renderPractice(){
@@ -606,7 +629,7 @@ function bind(){
 }
 document.addEventListener('click', function(e){
   if (e.target.dataset && e.target.dataset.zoom) { var z = $('#zoom'); z.querySelector('img').src = e.target.src; z.classList.add('open'); return; }
-  var t = e.target.closest('[data-k],[data-act],[data-st],[data-src],[data-sort],[data-run],[data-open],[data-go],[data-unm],#tabs button');
+  var t = e.target.closest('#chBtn,[data-ch],[data-ord],[data-k],[data-act],[data-st],[data-src],[data-sort],[data-run],[data-open],[data-go],[data-unm],#tabs button');
   if (!t) return;
   if (t.dataset.unm) { e.preventDefault(); e.stopPropagation(); var r = rec(null, t.dataset.unm); r.m = false; r.wb = true; r.st = 0; save(); toast('已放回错题本'); render(); return; }
   if (t.dataset.k !== undefined) return pick(Number(t.dataset.k));
@@ -617,6 +640,9 @@ document.addEventListener('click', function(e){
   if (a === 'wb') return toggleWB();
   if (a === 'lesson') return openLesson(BY[cur.id]);
   if (a === 'slide') { cur.slide = true; return renderQuestion(); }
+  if (t.id === 'chBtn') { S.chOpen = !S.chOpen; save(); return render(); }
+  if (t.dataset.ch) { S.f.ch = t.dataset.ch; S.chOpen = false; listCache = null; cur = null; save(); render(); toast((t.dataset.ch === 'all' ? '全部章节' : CH[t.dataset.ch]) + (S.set.shuffle ? '，随机顺序' : '，按顺序')); return; }
+  if (t.dataset.ord) { var o = t.dataset.ord; if (o === 're' || (o === 'x' && !S.set.shuffle)) S.seed = Date.now() % 100000; S.set.shuffle = o !== 's'; listCache = null; cur = null; save(); render(); if (o === 're') toast('已重新洗牌，从第 1 题开始'); return; }
   if (t.dataset.st) { S.f.st = t.dataset.st; listCache = null; cur = null; save(); return render(); }
   if (t.dataset.src) { var i = S.f.src.indexOf(t.dataset.src); if (i < 0) S.f.src.push(t.dataset.src); else S.f.src.splice(i, 1); listCache = null; cur = null; S.fOpen = true; save(); return render(); }
   if (t.dataset.sort) { S.wbSort = t.dataset.sort; save(); return render(); }
