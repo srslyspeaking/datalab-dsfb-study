@@ -141,12 +141,23 @@ details.sec summary{cursor:pointer;font-weight:600;padding:8px 0;color:var(--mut
 .chcard i{position:absolute;left:0;bottom:0;height:3px;background:var(--ok,#2f7d4f)}
 .chcard.on{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink);background:var(--cream)}
 .synch{margin:16px 0 4px;font-size:15px}
-.tokin{flex:1 1 200px;min-width:0;border:1px solid var(--line);border-radius:999px;padding:9px 14px;font-size:14px;background:#fff}
+.qr{display:flex;flex-direction:column;align-items:center;gap:6px;margin:8px 0}
+.qr svg{width:220px;height:220px;background:#fff;border-radius:8px}
+.qr span{font-size:12px;color:var(--muted)}
 .syncline{margin:6px 0 8px;font-size:14px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .syncline #syncStatus{color:var(--muted);font-size:13px}
 .syncdot{display:inline-block;width:8px;height:8px;border-radius:50%;background:transparent;vertical-align:middle}
 .syncdot.ok{background:var(--ok,#2f7d4f)}.syncdot.err{background:var(--bad,#b5473a)}
 #openSettings{position:relative}#openSettings .syncdot{position:absolute;right:2px;top:2px}
+.notebox{margin-top:12px;border:1px solid var(--line);border-radius:10px;background:#fffdf3;padding:10px 12px}
+.notebox label{display:flex;justify-content:space-between;align-items:baseline;font-weight:600;font-size:14px;margin-bottom:6px}
+.notebox small{font-weight:400;color:var(--muted);font-size:12px}
+.notebox textarea{width:100%;box-sizing:border-box;border:0;background:transparent;resize:none;font:inherit;font-size:15px;line-height:1.6;outline:none;min-height:66px;color:var(--ink)}
+.item.note{display:block}
+.item.note .t{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:var(--muted);font-size:13px}
+.item.note .nt{display:block;white-space:pre-wrap;margin:6px 0;font-size:15px;line-height:1.55;border-left:3px solid var(--warn,#a87a12);padding-left:10px}
+.nch{margin:14px 0 6px;font-size:14px;color:var(--muted)}
+.search{flex:1 1 240px;border:1px solid var(--line);border-radius:999px;padding:9px 14px;font-size:15px;background:#fff;min-width:0}
 @media(max-width:640px){.chgrid{grid-template-columns:1fr 1fr}.chcard{padding:9px 10px 11px}.chcard b{font-size:13px}.chbtn{flex:1 1 100%;text-align:left}}
 @media(max-width:640px){.svgw svg{min-width:440px}}
 ul.fx{margin:6px 0 0;padding:10px 14px 10px 30px;background:var(--cream);border-radius:8px;font-size:13.5px;line-height:1.75}
@@ -182,6 +193,7 @@ figure.slide figcaption{font-size:12px;color:var(--muted);margin-top:6px}
     <button data-v="practice">刷题</button>
     <button data-v="wrong">错题本<b id="wbCount"></b></button>
     <button data-v="fav">收藏<b id="favCount"></b></button>
+    <button data-v="notes">笔记<b id="noteCount"></b></button>
   </nav>
   <button class="icon-btn" id="openSettings" title="设置">⚙︎</button>
 </div></header>
@@ -204,15 +216,16 @@ figure.slide figcaption{font-size:12px;color:var(--muted);margin-top:6px}
   <label class="set"><span>随机顺序<small>默认打开；也可在题目上方切换“随机 / 顺序”</small></span><span class="sw"><input type="checkbox" data-set="shuffle"><i></i></span></label>
   <label class="set"><span>掌握标准<small>错题连续答对几轮后自动移到“已掌握”</small></span>
     <select class="select" data-set="master"><option value="1">1 轮</option><option value="2">2 轮</option><option value="3">3 轮</option></select></label>
-  <h4 class="synch">☁ 电脑 / 手机同步</h4>
-  <div id="syncBox"></div>
+  <h4 class="synch">📲 电脑 ⇄ 手机</h4>
+  <p class="kbd" style="margin:2px 0 6px">在做过题的设备上生成链接，到另一台设备打开（扫码或发给自己），两边记录自动合并，什么都不用注册。</p>
+  <div id="xferBox"></div>
   <div class="row">
     <button class="btn ghost" id="exportBtn">导出进度</button>
     <label class="btn ghost" style="cursor:pointer">导入进度<input type="file" accept="application/json" id="importFile" hidden></label>
     <button class="btn ghost" id="resetBtn">清空所有记录</button>
   </div>
-  <p class="kbd">进度自动保存在这个浏览器里；开了上面的同步就会在各设备间自动合并。没开同步时，也可以“导出进度”再到另一台设备“导入”。<br>
-  键盘：<code>A</code>–<code>D</code> 或 <code>1</code>–<code>4</code> 选择 · <code>←</code> <code>→</code> 换题 · <code>空格</code> 看答案 · <code>R</code> 重做本题 · <code>S</code> 收藏。手机上左右滑动换题。</p>
+  <p class="kbd">进度和笔记自动保存在这个浏览器里。换设备用上面的搬运链接；也可以“导出进度”文件再“导入”。<br>
+  键盘：<code>A</code>–<code>D</code> 或 <code>1</code>–<code>4</code> 选择 · <code>←</code> <code>→</code> 换题 · <code>空格</code> 看答案 · <code>R</code> 重做本题 · <code>S</code> 收藏 · <code>N</code> 写笔记。手机上左右滑动换题。</p>
   <div class="row"><button class="btn" id="closeSettings">完成</button></div>
 </div></div>
 
@@ -261,7 +274,7 @@ function stamp(){ var now = Date.now(), ch = 0; Object.keys(S.recs).forEach(func
     if (SNAP[id] !== j) { if (SNAP[id] !== undefined || !u) { r.u = now; ch++; } SNAP[id] = j; } }); return ch; }
 function snapAll(){ SNAP = {}; Object.keys(S.recs).forEach(function(id){ var r = S.recs[id], u = r.u; delete r.u; SNAP[id] = JSON.stringify(r); r.u = u; }); }
 function writeLocal(){ try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e) { toast('浏览器存储空间不足，进度可能没有保存'); } }
-function save(){ clearTimeout(saveT); saveT = setTimeout(function(){ if (stamp()) Sync.dirty(); writeLocal(); }, 150); }
+function save(){ clearTimeout(saveT); saveT = setTimeout(function(){ stamp(); writeLocal(); }, 150); }
 
 /* session-only: what has been clicked on the question currently shown */
 var cur = null;  // { id, pick, tried:[], first:null, reveal:false, shown:false }
@@ -276,14 +289,15 @@ function toast(t){ var el = $('#toast'); el.textContent = t; el.classList.add('s
 function rnd(seed){ return function(){ seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }; }
 function shuffled(arr, seed){ var a = arr.slice(), r = rnd(seed); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(r() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
 function inWB(id){ var r = peek(id); return !!(r && r.wb && !r.m); }
-function counts(){ var wb = 0, fav = 0; Object.keys(S.recs).forEach(function(id){ var r = S.recs[id]; if (!BY[id]) return; if (r.wb && !r.m) wb++; if (r.fav) fav++; }); return { wb:wb, fav:fav }; }
+function hasNote(r){ return !!(r && r.note && r.note.trim()); }
+function counts(){ var wb = 0, fav = 0, nt = 0; Object.keys(S.recs).forEach(function(id){ var r = S.recs[id]; if (!BY[id]) return; if (r.wb && !r.m) wb++; if (r.fav) fav++; if (hasNote(r)) nt++; }); return { wb:wb, fav:fav, nt:nt }; }
 
 /* ---------- lists ---------- */
-function listKey(){ return S.view === 'practice' ? ['p', S.f.ch, S.f.src.join('+'), S.f.st, S.set.shuffle ? 'x' + S.seed : 's'].join('|') : S.view === 'wbrun' ? 'wbrun|' + (S.runSeed || 0) : S.view === 'favrun' ? 'favrun' : S.view; }
+function listKey(){ return S.view === 'practice' ? ['p', S.f.ch, S.f.src.join('+'), S.f.st, S.set.shuffle ? 'x' + S.seed : 's'].join('|') : S.view === 'wbrun' ? 'wbrun|' + (S.runSeed || 0) : S.view === 'favrun' ? 'favrun' : S.view === 'noterun' ? 'noterun|' + (S.runSeed || 0) : S.view; }
 function currentList(){
   var key = listKey(); if (listCache && listCache.key === key) return listCache.ids;
   var ids;
-  if (S.view === 'wbrun') { ids = (S.run || []).filter(function(id){ return BY[id]; }); }
+  if (S.view === 'wbrun' || S.view === 'noterun') { ids = (S.run || []).filter(function(id){ return BY[id]; }); }
   else if (S.view === 'favrun') { ids = DATA.filter(function(q){ var r = peek(q.i); return r && r.fav; }).map(function(q){ return q.i; }); }
   else {
     ids = DATA.filter(function(q){
@@ -505,12 +519,13 @@ function diagramsFor(q){
 function slideSrc(q){ return './slide-pages/' + q.l + '/page-' + String(q.p).padStart(3, '0') + '.webp'; }
 
 /* ---------- rendering ---------- */
-function updateCounts(){ var c = counts(); $('#wbCount').textContent = c.wb || ''; $('#favCount').textContent = c.fav || '';
-  [].forEach.call(document.querySelectorAll('#tabs button'), function(b){ var v = b.dataset.v; b.classList.toggle('on', v === S.view || (v === 'wrong' && S.view === 'wbrun') || (v === 'fav' && S.view === 'favrun')); }); }
+function updateCounts(){ var c = counts(); $('#wbCount').textContent = c.wb || ''; $('#favCount').textContent = c.fav || ''; $('#noteCount').textContent = c.nt || '';
+  [].forEach.call(document.querySelectorAll('#tabs button'), function(b){ var v = b.dataset.v; b.classList.toggle('on', v === S.view || (v === 'wrong' && S.view === 'wbrun') || (v === 'fav' && S.view === 'favrun') || (v === 'notes' && S.view === 'noterun')); }); }
 function render(){
   updateCounts();
   var nav = $('#nav');
-  if (S.view === 'wrong' || S.view === 'fav') { nav.style.display = 'none'; renderBook(); }
+  if (S.view === 'notes') { nav.style.display = 'none'; renderNotes(); }
+  else if (S.view === 'wrong' || S.view === 'fav') { nav.style.display = 'none'; renderBook(); }
   else { nav.style.display = ''; renderPractice(); }
 }
 
@@ -536,7 +551,8 @@ function filterBar(){
 function renderPractice(){
   var app = $('#app'), ids = currentList(), html = '';
   if (S.view === 'practice') html += filterBar();
-  else html += '<div class="wb-head"><div><h2>' + (S.view === 'wbrun' ? '错题重做' : '收藏重做') + '</h2><p>答对会累计“连续答对”轮数；答错会重新归零。</p></div><button class="btn ghost" id="exitRun">← 返回' + (S.view === 'wbrun' ? '错题本' : '收藏') + '</button></div>';
+  else { var RN = { wbrun:['错题重做','错题本'], favrun:['收藏重做','收藏'], noterun:['看笔记刷题','笔记'] }[S.view];
+    html += '<div class="wb-head"><div><h2>' + RN[0] + '</h2><p>答对会累计“连续答对”轮数；答错会重新归零。</p></div><button class="btn ghost" id="exitRun">← 返回' + RN[1] + '</button></div>'; }
   if (!ids.length) {
     app.innerHTML = html + '<div class="empty"><h3>' + (S.view === 'wbrun' ? '这一组错题都练完了 👏' : '这里暂时没有题') + '</h3><p>' + (S.view === 'practice' ? '换个章节或筛选条件试试。' : '') + '</p>' + (S.view === 'practice' ? '<button class="btn ghost" id="clearF">清空筛选</button>' : '') + '</div>';
     $('#mid').textContent = ''; bind(); return;
@@ -597,8 +613,14 @@ function renderQuestion(){
     '<button class="tool" data-act="redo">↺ 重做本题</button>' +
     '<button class="tool' + (r.fav ? ' on' : '') + '" data-act="fav">' + (r.fav ? '★ 已收藏' : '☆ 收藏') + '</button>' +
     (inWB(cur.id) ? '<button class="tool" data-act="wb">✓ 我会了，移出错题本</button>' : (r.n ? '<button class="tool" data-act="wb">＋ 放进错题本</button>' : '')) +
+    (hasNote(r) || cur.note ? '' : '<button class="tool" data-act="note">📝 写笔记</button>') +
     (q.p > 0 ? '<button class="tool" data-act="lesson">📖 看课件第 ' + q.p + ' 页</button>' : '') + '</div>';
+  if (hasNote(r) || cur.note) h += '<div class="notebox"><label for="noteTa">📝 我的笔记 <small id="noteSt">' + (r.nu ? '保存于 ' + ago(r.nu) : '自动保存') + '</small></label>' +
+    '<textarea id="noteTa" rows="3" placeholder="写下这题的思路、易错点、公式……只保存在这道题上">' + esc(r.note || '') + '</textarea></div>';
   box.innerHTML = h;
+  var ta = $('#noteTa'); if (ta) { var grow = function(){ ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight + 2, 420) + 'px'; }; grow();
+    ta.oninput = function(){ var rr = rec(null, cur.id); rr.note = ta.value; rr.nu = Date.now(); grow(); save(); $('#noteSt').textContent = '已保存'; updateCounts(); };
+    if (cur.note === 'focus') { cur.note = true; ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); } }
 }
 
 function renderBook(){
@@ -634,12 +656,38 @@ function itemHTML(q, m){
     '<span class="c">' + (m ? '<b>✓</b>' : '<b>' + (r.w || 0) + '</b>次错') + '</span></div>';
 }
 
+function openNote(){ if (!cur) return; var ta = $('#noteTa'); if (ta) { ta.focus(); return; } cur.note = 'focus'; renderQuestion(); var t = $('#noteTa'); if (t) t.scrollIntoView({ block:'center', behavior:'smooth' }); }
+function renderNotes(){
+  var app = $('#app'), all = DATA.filter(function(q){ return hasNote(peek(q.i)); });
+  var qx = (S.noteQ || '').trim().toLowerCase();
+  var items = all.filter(function(q){ return !qx || (peek(q.i).note + ' ' + q.q + ' ' + (q.qz || '')).toLowerCase().indexOf(qx) >= 0; });
+  var h = '<div class="wb-head"><div><h2>笔记</h2><p>每道题单独记。做题时点“📝 写笔记”（或按 N），这里按章节汇总。</p></div>' +
+    (all.length ? '<span style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-run="order">按笔记刷 ' + items.length + ' 题</button><button class="btn ghost" id="noteMd">导出 Markdown</button></span>' : '') + '</div>';
+  if (!all.length) { app.innerHTML = h + '<div class="empty"><h3>还没有笔记</h3><p>做题时点题目下方的“📝 写笔记”，笔记会跟着那道题保存。</p><button class="btn ghost" data-go="practice">去刷题</button></div>'; bind(); return; }
+  h += '<div class="bar"><input class="search" id="noteQ" type="search" placeholder="搜索笔记或题目" value="' + esc(S.noteQ || '') + '"></div><div class="list">';
+  var lastCh = '';
+  items.sort(function(a, b){ return CH_ORDER.indexOf(a.l) - CH_ORDER.indexOf(b.l) || (peek(b.i).nu || 0) - (peek(a.i).nu || 0); }).forEach(function(q){
+    var r = peek(q.i);
+    if (q.l !== lastCh) { lastCh = q.l; h += '<h4 class="nch">' + esc(CH[q.l] || q.l) + '</h4>'; }
+    h += '<div class="item note" role="button" tabindex="0" data-open="' + q.i + '"><span class="t">' + esc((q.story ? q.story + ' ' : '') + q.q) + '</span>' +
+      '<span class="nt">' + esc(r.note.trim()) + '</span><span class="s"><span>' + SRC[q.s] + '</span><span>改于 ' + ago(r.nu) + '</span>' + (r.wb && !r.m ? '<span>错题本里</span>' : '') + '</span></div>'; });
+  if (!items.length) h += '<p class="note">没有匹配的笔记。</p>';
+  app.innerHTML = h + '</div>'; bind();
+  var nq = $('#noteQ'); nq.oninput = function(){ S.noteQ = nq.value; var pos = nq.selectionStart; renderNotes(); var n2 = $('#noteQ'); n2.focus(); n2.setSelectionRange(pos, pos); };
+  $('#noteMd').onclick = function(){
+    var md = '# DSFB 刷题笔记\n\n导出于 ' + new Date().toLocaleString() + '\n', lc = '';
+    all.slice().sort(function(a, b){ return CH_ORDER.indexOf(a.l) - CH_ORDER.indexOf(b.l); }).forEach(function(q){ var r = peek(q.i);
+      if (q.l !== lc) { lc = q.l; md += '\n## ' + (CH[q.l] || q.l) + '\n'; }
+      md += '\n### ' + (q.story ? q.story + ' ' : '') + q.q + '\n\n' + q.o.map(function(o, k){ return '- ' + 'ABCD'[k] + '. ' + o + (k === q.a ? ' ✅' : ''); }).join('\n') + '\n\n> ' + r.note.trim().replace(/\n/g, '\n> ') + '\n'; });
+    var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([md], { type:'text/markdown' })); a.download = 'DSFB-笔记-' + new Date().toISOString().slice(0, 10) + '.md'; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 500); toast('笔记已导出'); };
+}
+
 /* ---------- events ---------- */
 function bind(){
   var fCh = $('#fCh'); if (fCh) fCh.onchange = function(){ S.f.ch = this.value; listCache = null; cur = null; save(); render(); };
   var wbCh = $('#wbCh'); if (wbCh) wbCh.onchange = function(){ S.wbCh = this.value; save(); render(); };
   var fm = $('#fMore'); if (fm) fm.onclick = function(){ S.fOpen = !S.fOpen; $('#fPanel').classList.toggle('open', S.fOpen); };
-  var ex = $('#exitRun'); if (ex) ex.onclick = function(){ go(S.view === 'wbrun' ? 'wrong' : 'fav'); };
+  var ex = $('#exitRun'); if (ex) ex.onclick = function(){ go(S.view === 'wbrun' ? 'wrong' : S.view === 'noterun' ? 'notes' : 'fav'); };
   var cf = $('#clearF'); if (cf) cf.onclick = function(){ S.f = { ch:'all', src:[], st:'all' }; listCache = null; cur = null; save(); render(); };
 }
 document.addEventListener('click', function(e){
@@ -655,6 +703,7 @@ document.addEventListener('click', function(e){
   if (a === 'wb') return toggleWB();
   if (a === 'lesson') return openLesson(BY[cur.id]);
   if (a === 'slide') { cur.slide = true; return renderQuestion(); }
+  if (a === 'note') return openNote();
   if (t.id === 'chBtn') { S.chOpen = !S.chOpen; save(); return render(); }
   if (t.dataset.ch) { S.f.ch = t.dataset.ch; S.chOpen = false; listCache = null; cur = null; save(); render(); toast((t.dataset.ch === 'all' ? '全部章节' : CH[t.dataset.ch]) + (S.set.shuffle ? '，随机顺序' : '，按顺序')); return; }
   if (t.dataset.ord) { var o = t.dataset.ord; if (o === 're' || (o === 'x' && !S.set.shuffle)) S.seed = Date.now() % 100000; S.set.shuffle = o !== 's'; listCache = null; cur = null; save(); render(); if (o === 're') toast('已重新洗牌，从第 1 题开始'); return; }
@@ -667,12 +716,12 @@ document.addEventListener('click', function(e){
   if (t.dataset.v) return go(t.dataset.v);
 });
 function startRun(shuffle, startId){
-  var isWB = S.view === 'wrong' || S.view === 'wbrun';
+  var isWB = S.view === 'wrong' || S.view === 'wbrun', isNT = S.view === 'notes' || S.view === 'noterun';
   var ids = [].map.call(document.querySelectorAll('.list:not(details .list) [data-open]'), function(el){ return el.dataset.open; });
   if (!ids.length && startId) ids = [startId];
   if (shuffle) ids = shuffled(ids, Date.now() % 100000);
   S.run = ids; S.runSeed = Date.now();
-  S.view = isWB ? 'wbrun' : 'favrun';
+  S.view = isNT ? 'noterun' : isWB ? 'wbrun' : 'favrun';
   if (S.view === 'favrun') S.run = ids;
   listCache = null; cur = null;
   var key = listKey(); S.pos[key] = startId ? Math.max(0, ids.indexOf(startId)) : 0;
@@ -690,7 +739,7 @@ $('#mid').onclick = function(){ if (cur) reveal(); };
 document.addEventListener('keydown', function(e){
   if (e.target.matches('input,select,textarea') || e.metaKey || e.ctrlKey || e.altKey) return;
   if ($('#settings').classList.contains('open')) { if (e.key === 'Escape') closeSettings(); return; }
-  if (S.view === 'wrong' || S.view === 'fav') return;
+  if (S.view === 'wrong' || S.view === 'fav' || S.view === 'notes') return;
   var k = e.key.toLowerCase(), m = { a:0, b:1, c:2, d:3, '1':0, '2':1, '3':2, '4':3 };
   if (k in m) { pick(m[k]); e.preventDefault(); }
   else if (k === 'arrowright' || k === 'enter') { step(1); e.preventDefault(); }
@@ -698,99 +747,65 @@ document.addEventListener('keydown', function(e){
   else if (k === ' ') { reveal(); e.preventDefault(); }
   else if (k === 'r') redo();
   else if (k === 's') toggleFav();
+  else if (k === 'n') { openNote(); e.preventDefault(); }
 });
 var sx = null, sy = null;
-document.addEventListener('touchstart', function(e){ if (e.touches.length === 1 && e.target.closest('#qcard')) { sx = e.touches[0].clientX; sy = e.touches[0].clientY; } else sx = null; }, { passive:true });
+document.addEventListener('touchstart', function(e){ if (e.touches.length === 1 && e.target.closest('#qcard') && !e.target.closest('textarea')) { sx = e.touches[0].clientX; sy = e.touches[0].clientY; } else sx = null; }, { passive:true });
 document.addEventListener('touchend', function(e){ if (sx === null) return; var dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy; sx = null;
   if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.8) step(dx < 0 ? 1 : -1); }, { passive:true });
 
-/* ---------- cloud sync via a private GitHub Gist ---------- */
-var Sync = (function(){
-  var SK = 'dsfb-sync-v1', DESC = 'DSFB 刷题进度同步（Data+Lab）', FILE = 'dsfb-progress.json', API = 'https://api.github.com';
-  var cfg = {}; try { cfg = JSON.parse(localStorage.getItem(SK) || '{}') || {}; } catch(e) {}
-  var busy = false, again = false, pushT = 0, status = '';
-  function keep(){ try { localStorage.setItem(SK, JSON.stringify(cfg)); } catch(e) {} }
-  function on(){ return !!cfg.token; }
-  function setStatus(t){ status = t; var el = document.getElementById('syncStatus'); if (el) el.textContent = t; var d = document.getElementById('syncDot'); if (d) { d.className = 'syncdot' + (on() ? (/失败|无效|出错/.test(t) ? ' err' : ' ok') : ''); d.title = on() ? t : ''; } }
-  function hm(t){ var d = new Date(t); return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); }
-  function gh(method, path, body){
-    return fetch(API + path, { method:method, cache:'no-store', headers:{ 'Authorization':'Bearer ' + cfg.token, 'Accept':'application/vnd.github+json' }, body: body ? JSON.stringify(body) : undefined })
-      .then(function(r){ if (r.status === 401) throw new Error('auth'); if (!r.ok) throw new Error('http ' + r.status); return r.status === 204 ? null : r.json(); });
-  }
-  function payload(){ var recs = {}; Object.keys(S.recs).forEach(function(id){ var r = S.recs[id]; if (r && (r.n || r.wb || r.fav || r.m)) recs[id] = r; });
-    return JSON.stringify({ app:'dsfb-practice', v:1, at:Date.now(), resetAt:S.resetAt || 0, recs:recs }); }
-  function findGist(){
-    if (cfg.gist) return Promise.resolve(cfg.gist);
-    return gh('GET', '/gists?per_page=100').then(function(list){
-      var g = (list || []).filter(function(x){ return x.description === DESC && x.files && x.files[FILE]; })[0];
-      if (g) return g.id;
-      var files = {}; files[FILE] = { content: payload() };
-      return gh('POST', '/gists', { description:DESC, public:false, files:files }).then(function(n){ return n.id; });
-    }).then(function(id){ cfg.gist = id; keep(); return id; });
-  }
-  function readRemote(id){
-    return gh('GET', '/gists/' + id).then(function(g){ var f = g.files && g.files[FILE]; if (!f) return null;
-      if (!f.truncated) return f.content;
-      return fetch(f.raw_url, { cache:'no-store' }).then(function(r){ return r.text(); }); })
-      .then(function(t){ try { return t ? JSON.parse(t) : null; } catch(e) { return null; } });
-  }
-  function merge(rem){
-    var changed = 0, needPush = false, rr = (rem && rem.recs) || {};
-    var reset = Math.max(S.resetAt || 0, (rem && rem.resetAt) || 0);
-    if (reset > (S.resetAt || 0)) { S.resetAt = reset; Object.keys(S.recs).forEach(function(id){ if ((S.recs[id].u || 0) <= reset) { delete S.recs[id]; changed++; } }); }
-    if ((rem && rem.resetAt || 0) < reset) needPush = true;
-    Object.keys(rr).forEach(function(id){ var b = rr[id], a = S.recs[id]; if (!BY[id] || (b.u || 0) <= reset) return;
-      if (!a || (b.u || 0) > (a.u || 0)) { S.recs[id] = b; changed++; } });
-    Object.keys(S.recs).forEach(function(id){ var a = S.recs[id], b = rr[id]; if ((a.n || a.wb || a.fav || a.m) && (!b || (a.u || 0) > (b.u || 0))) needPush = true; });
-    return { changed:changed, needPush:needPush };
-  }
-  function run(){
-    if (!on()) return Promise.resolve();
-    if (busy) { again = true; return Promise.resolve(); }
-    busy = true; clearTimeout(pushT); setStatus('正在同步…');
-    if (stamp()) writeLocal();
-    var id;
-    return findGist().then(function(g){ id = g; return readRemote(id); }).then(function(rem){
-      if (!rem) { cfg.gist = null; keep(); return findGist().then(function(g){ id = g; return { changed:0, needPush:true }; }); }
-      return merge(rem);
-    }).then(function(m){
-      if (m.changed) { snapAll(); writeLocal(); listCache = null; render(); }
-      if (!m.needPush) return;
-      var files = {}; files[FILE] = { content: payload() };
-      return gh('PATCH', '/gists/' + id, { files:files }).catch(function(e){ if (/404/.test(e.message)) { cfg.gist = null; keep(); } throw e; });
-    }).then(function(){ cfg.last = Date.now(); keep(); setStatus('已同步 · ' + hm(cfg.last)); })
-      .catch(function(e){ setStatus(e.message === 'auth' ? '密钥无效或已过期，请重新连接' : (navigator.onLine === false ? '离线中，联网后会自动同步' : '同步失败，稍后自动重试')); })
-      .then(function(){ busy = false; if (again) { again = false; schedule(1500); } });
-  }
-  function schedule(ms){ if (!on()) return; clearTimeout(pushT); pushT = setTimeout(run, ms); }
-  function connect(token){
-    token = (token || '').trim(); if (!token) { toast('先粘贴密钥'); return; }
-    cfg = { token:token }; keep(); setStatus('正在连接…');
-    return gh('GET', '/gists?per_page=1').then(function(){ toast('已连接，正在合并进度'); renderSync(); return run(); })
-      .catch(function(e){ cfg = {}; keep(); renderSync(); setStatus(e.message === 'auth' ? '密钥无效：请确认复制完整，并勾选了 gist 权限' : '连接失败，检查网络后重试'); });
-  }
-  function disconnect(){ cfg = {}; keep(); renderSync(); setStatus(''); toast('已断开，本机进度保留'); }
-  document.addEventListener('visibilitychange', function(){ if (document.visibilityState === 'visible') schedule(300); });
-  window.addEventListener('online', function(){ schedule(500); });
-  setInterval(function(){ if (document.visibilityState === 'visible') schedule(0); }, 90000);
-  return { on:on, run:run, connect:connect, disconnect:disconnect, dirty:function(){ schedule(2500); }, status:function(){ return status || (cfg.last ? '已同步 · ' + hm(cfg.last) : ''); }, setStatus:setStatus };
-})();
-function renderSync(){
-  var box = $('#syncBox'); if (!box) return;
-  if (Sync.on()) box.innerHTML = '<p class="syncline"><span class="syncdot ok"></span><b>已开启同步</b> <span id="syncStatus">' + esc(Sync.status()) + '</span></p>' +
-    '<div class="row"><button class="btn ghost" id="syncNow">立即同步</button><button class="btn ghost" id="syncOff">断开这台设备</button></div>';
-  else box.innerHTML = '<p class="kbd" style="margin:4px 0 8px">用你自己的 GitHub 账号存一份私密进度，电脑和手机各连接一次，以后自动同步（答题记录、错题本、收藏）。<br>' +
-    '① 打开 <a href="https://github.com/settings/tokens/new?scopes=gist&description=DSFB%20%E5%88%B7%E9%A2%98%E5%90%8C%E6%AD%A5" target="_blank" rel="noopener">GitHub 生成密钥页面</a>（已自动勾选唯一需要的 <code>gist</code> 权限，Expiration 可选 No expiration）→ 拉到底点 Generate token → 复制 <code>ghp_</code> 开头的密钥。<br>' +
-    '② 粘贴到下面点“连接”。手机上用同一个密钥再连一次即可。</p>' +
-    '<div class="row"><input class="tokin" id="syncTok" type="password" autocomplete="off" placeholder="粘贴 ghp_… 密钥"><button class="btn" id="syncGo">连接</button></div>' +
-    '<p class="kbd" id="syncStatus" style="color:var(--bad,#b5473a)">' + esc(Sync.status()) + '</p>';
-  var a = $('#syncNow'); if (a) a.onclick = function(){ Sync.run(); };
-  var b = $('#syncOff'); if (b) b.onclick = Sync.disconnect;
-  var c = $('#syncGo'); if (c) c.onclick = function(){ Sync.connect($('#syncTok').value); };
+/* ---------- move progress between devices with a link ---------- */
+function b64u(bytes){ var s = ''; for (var i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
+function unb64u(t){ var s = atob(t.replace(/-/g, '+').replace(/_/g, '/')); var a = new Uint8Array(s.length); for (var i = 0; i < s.length; i++) a[i] = s.charCodeAt(i); return a; }
+function streamAll(bytes, ts){ return new Response(new Blob([bytes]).stream().pipeThrough(ts)).arrayBuffer().then(function(b){ return new Uint8Array(b); }); }
+function packProgress(){
+  stamp();
+  var recs = {}; Object.keys(S.recs).forEach(function(id){ var r = S.recs[id]; if (r && (r.n || r.wb || r.fav || r.m || r.note)) recs[id] = r; });
+  var raw = new TextEncoder().encode(JSON.stringify({ v:1, resetAt:S.resetAt || 0, recs:recs }));
+  if (window.CompressionStream) return streamAll(raw, new CompressionStream('deflate-raw')).then(function(z){ return 'z' + b64u(z); });
+  return Promise.resolve('j' + b64u(raw));
+}
+function unpackProgress(t){
+  var body = unb64u(t.slice(1));
+  var p = t[0] === 'z' ? streamAll(body, new DecompressionStream('deflate-raw')) : Promise.resolve(body);
+  return p.then(function(b){ return JSON.parse(new TextDecoder().decode(b)); });
+}
+function mergeIn(rem){
+  var changed = 0, notes = 0, rr = (rem && rem.recs) || {};
+  var reset = Math.max(S.resetAt || 0, (rem && rem.resetAt) || 0);
+  if (reset > (S.resetAt || 0)) { S.resetAt = reset; Object.keys(S.recs).forEach(function(id){ if ((S.recs[id].u || 0) <= reset) { delete S.recs[id]; changed++; } }); }
+  Object.keys(rr).forEach(function(id){ var b = rr[id], a = S.recs[id]; if (!BY[id] || (b.u || 0) <= reset) return;
+    var win = a, lose = b;
+    if (!a || (b.u || 0) > (a.u || 0)) { win = JSON.parse(JSON.stringify(b)); lose = a; S.recs[id] = win; changed++; }
+    if (lose && (lose.nu || 0) > (win.nu || 0)) { win.note = lose.note; win.nu = lose.nu; if (win === a) changed++; }
+    if (win.note && b.note === win.note && (!a || a.note !== b.note)) notes++; });
+  snapAll(); writeLocal(); listCache = null;
+  return { changed:changed, notes:notes };
+}
+function loadQR(){ return window.qrcode ? Promise.resolve() : new Promise(function(ok, no){ var sc = document.createElement('script'); sc.src = './assets/qrcode.js'; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); }); }
+function makeTransfer(){
+  var box = $('#xferBox'); box.innerHTML = '<p class="kbd">正在生成…</p>';
+  packProgress().then(function(code){
+    var url = location.href.split('#')[0] + '#sync=' + code;
+    var n = Object.keys(S.recs).filter(function(id){ var r = S.recs[id]; return r.n || r.wb || r.fav || r.note; }).length;
+    var h = '<p class="kbd" style="margin:6px 0">包含 ' + n + ' 道题的记录（对错、错题本、收藏、笔记）。在另一台设备上打开这个链接，就会和那边的记录合并。</p><div class="qr" id="qrBox"></div>' +
+      '<div class="row">' + (navigator.share ? '<button class="btn" id="xShare">发送到手机 / 电脑…</button>' : '') + '<button class="btn' + (navigator.share ? ' ghost' : '') + '" id="xCopy">复制链接</button></div>';
+    box.innerHTML = h;
+    $('#xCopy').onclick = function(){ (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(function(){ toast('链接已复制，发给自己（微信 / 邮件）后在另一台设备打开'); }, function(){ prompt('复制这个链接：', url); }); };
+    var sh = $('#xShare'); if (sh) sh.onclick = function(){ navigator.share({ title:'DSFB 刷题进度', url:url }).catch(function(){}); };
+    if (url.length <= 2300) loadQR().then(function(){ try { var q = qrcode(0, 'L'); q.addData(url); q.make(); $('#qrBox').innerHTML = q.createSvgTag({ cellSize:3, margin:2, scalable:true }) + '<span>手机相机扫一扫</span>'; } catch(e) { $('#qrBox').remove(); } }, function(){ $('#qrBox').remove(); });
+    else $('#qrBox').innerHTML = '<span>记录较多，二维码装不下了，请用“' + (navigator.share ? '发送' : '复制链接') + '”</span>';
+  }).catch(function(){ box.innerHTML = '<p class="kbd">生成失败，请改用下面的“导出进度”。</p>'; });
+}
+function receiveTransfer(){
+  var m = /^#sync=([zj][A-Za-z0-9_-]+)/.exec(location.hash); if (!m) return Promise.resolve(false);
+  history.replaceState(null, '', location.pathname + location.search);
+  return unpackProgress(m[1]).then(function(rem){ var r = mergeIn(rem); render(); toast(r.changed ? '已合并另一台设备的记录：更新了 ' + r.changed + ' 道题' : '两边记录已经一致'); return true; })
+    .catch(function(){ toast('这个链接不完整，请重新复制一次'); return false; });
 }
 
 /* ---------- settings ---------- */
-function openSettings(){ renderSync(); [].forEach.call(document.querySelectorAll('[data-set]'), function(el){ var v = S.set[el.dataset.set]; if (el.type === 'checkbox') el.checked = !!v; else el.value = String(v); }); $('#settings').classList.add('open'); }
+function openSettings(){ $('#xferBox').innerHTML = '<div class="row"><button class="btn" id="xMake">生成搬运链接 / 二维码</button></div>'; $('#xMake').onclick = makeTransfer; [].forEach.call(document.querySelectorAll('[data-set]'), function(el){ var v = S.set[el.dataset.set]; if (el.type === 'checkbox') el.checked = !!v; else el.value = String(v); }); $('#settings').classList.add('open'); }
 function closeSettings(){ $('#settings').classList.remove('open'); }
 $('#openSettings').onclick = openSettings;
 $('#closeSettings').onclick = closeSettings;
@@ -808,16 +823,16 @@ $('#importFile').onchange = function(){ var f = this.files[0]; if (!f) return; v
   rd.readAsText(f); this.value = ''; };
 var resetArmed = false;
 $('#resetBtn').onclick = function(){ if (!resetArmed) { resetArmed = true; this.textContent = '再点一次确认清空'; var b = this; setTimeout(function(){ resetArmed = false; b.textContent = '清空所有记录'; }, 3000); return; }
-  S.recs = {}; S.pos = {}; S.migrated = 0; S.resetAt = Date.now(); SNAP = {}; Sync.dirty(); session = { done:0, ok:0 }; cur = null; listCache = null; save(); closeSettings(); render(); toast('记录已清空'); this.textContent = '清空所有记录'; resetArmed = false; };
+  S.recs = {}; S.pos = {}; S.migrated = 0; S.resetAt = Date.now(); SNAP = {}; session = { done:0, ok:0 }; cur = null; listCache = null; save(); closeSettings(); render(); toast('记录已清空'); this.textContent = '清空所有记录'; resetArmed = false; };
 
 if (S.view !== 'practice' && S.view !== 'wrong' && S.view !== 'fav' && S.view !== 'wbrun' && S.view !== 'favrun') S.view = 'practice';
 function gotoHash(){ var m = /[#&]q=([^&]+)/.exec(location.hash); if (!m) return false; var id = decodeURIComponent(m[1]); if (!BY[id]) return false;
   S.view = 'practice'; S.f = { ch:'all', src:[], st:'all' }; listCache = null; var j = currentList().indexOf(id); if (j < 0) return false; posSet(j); cur = null; render(); return true; }
-window.addEventListener('hashchange', gotoHash);
+window.addEventListener('hashchange', function(){ if (/^#sync=/.test(location.hash)) receiveTransfer(); else gotoHash(); });
 snapAll(); stamp();
+try { localStorage.removeItem('dsfb-sync-v1'); } catch(e) {}
 if (!gotoHash()) render();
-if ($('#openSettings') && !$('#syncDot')) $('#openSettings').insertAdjacentHTML('beforeend', '<span class="syncdot" id="syncDot"></span>');
-if (Sync.on()) setTimeout(Sync.run, 400);
+receiveTransfer();
 if (S.migrated && !S.migratedShown) { toast('已从旧版题库导入 ' + S.migrated + ' 条记录'); S.migratedShown = true; save(); }
 })();
 </script>
