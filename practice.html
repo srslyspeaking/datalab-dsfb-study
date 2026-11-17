@@ -158,6 +158,8 @@ details.sec summary{cursor:pointer;font-weight:600;padding:8px 0;color:var(--mut
 .item.note .nt{display:block;white-space:pre-wrap;margin:6px 0;font-size:15px;line-height:1.55;border-left:3px solid var(--warn,#a87a12);padding-left:10px}
 .nch{margin:14px 0 6px;font-size:14px;color:var(--muted)}
 .search{flex:1 1 240px;border:1px solid var(--line);border-radius:999px;padding:9px 14px;font-size:15px;background:#fff;min-width:0}
+.tokin{flex:1 1 200px;min-width:0;border:1px solid var(--line);border-radius:999px;padding:9px 14px;font-size:14px;background:#fff}
+ol.steps{margin:0 0 10px;padding-left:20px;font-size:13.5px;line-height:1.7}
 @media(max-width:640px){.chgrid{grid-template-columns:1fr 1fr}.chcard{padding:9px 10px 11px}.chcard b{font-size:13px}.chbtn{flex:1 1 100%;text-align:left}}
 @media(max-width:640px){.svgw svg{min-width:440px}}
 ul.fx{margin:6px 0 0;padding:10px 14px 10px 30px;background:var(--cream);border-radius:8px;font-size:13.5px;line-height:1.75}
@@ -216,15 +218,14 @@ figure.slide figcaption{font-size:12px;color:var(--muted);margin-top:6px}
   <label class="set"><span>随机顺序<small>默认打开；也可在题目上方切换“随机 / 顺序”</small></span><span class="sw"><input type="checkbox" data-set="shuffle"><i></i></span></label>
   <label class="set"><span>掌握标准<small>错题连续答对几轮后自动移到“已掌握”</small></span>
     <select class="select" data-set="master"><option value="1">1 轮</option><option value="2">2 轮</option><option value="3">3 轮</option></select></label>
-  <h4 class="synch">📲 电脑 ⇄ 手机</h4>
-  <p class="kbd" style="margin:2px 0 6px">在做过题的设备上生成链接，到另一台设备打开（扫码或发给自己），两边记录自动合并，什么都不用注册。</p>
-  <div id="xferBox"></div>
+  <h4 class="synch">☁ 电脑 / 手机自动同步</h4>
+  <div id="syncBox"></div>
   <div class="row">
     <button class="btn ghost" id="exportBtn">导出进度</button>
     <label class="btn ghost" style="cursor:pointer">导入进度<input type="file" accept="application/json" id="importFile" hidden></label>
     <button class="btn ghost" id="resetBtn">清空所有记录</button>
   </div>
-  <p class="kbd">进度和笔记自动保存在这个浏览器里。换设备用上面的搬运链接；也可以“导出进度”文件再“导入”。<br>
+  <p class="kbd">进度和笔记随时保存在这个浏览器里；开了自动同步就会同时存到你的 GitHub。也可以“导出进度”文件留个备份。<br>
   键盘：<code>A</code>–<code>D</code> 或 <code>1</code>–<code>4</code> 选择 · <code>←</code> <code>→</code> 换题 · <code>空格</code> 看答案 · <code>R</code> 重做本题 · <code>S</code> 收藏 · <code>N</code> 写笔记。手机上左右滑动换题。</p>
   <div class="row"><button class="btn" id="closeSettings">完成</button></div>
 </div></div>
@@ -274,7 +275,7 @@ function stamp(){ var now = Date.now(), ch = 0; Object.keys(S.recs).forEach(func
     if (SNAP[id] !== j) { if (SNAP[id] !== undefined || !u) { r.u = now; ch++; } SNAP[id] = j; } }); return ch; }
 function snapAll(){ SNAP = {}; Object.keys(S.recs).forEach(function(id){ var r = S.recs[id], u = r.u; delete r.u; SNAP[id] = JSON.stringify(r); r.u = u; }); }
 function writeLocal(){ try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e) { toast('浏览器存储空间不足，进度可能没有保存'); } }
-function save(){ clearTimeout(saveT); saveT = setTimeout(function(){ stamp(); writeLocal(); }, 150); }
+function save(){ clearTimeout(saveT); saveT = setTimeout(function(){ if (stamp()) Sync.dirty(); writeLocal(); }, 150); }
 
 /* session-only: what has been clicked on the question currently shown */
 var cur = null;  // { id, pick, tried:[], first:null, reveal:false, shown:false }
@@ -761,7 +762,8 @@ function streamAll(bytes, ts){ return new Response(new Blob([bytes]).stream().pi
 function packProgress(){
   stamp();
   var recs = {}; Object.keys(S.recs).forEach(function(id){ var r = S.recs[id]; if (r && (r.n || r.wb || r.fav || r.m || r.note)) recs[id] = r; });
-  var raw = new TextEncoder().encode(JSON.stringify({ v:1, resetAt:S.resetAt || 0, recs:recs }));
+  var obj = { v:1, resetAt:S.resetAt || 0, recs:recs }; var k = Sync.key(); if (k) obj.k = k;
+  var raw = new TextEncoder().encode(JSON.stringify(obj));
   if (window.CompressionStream) return streamAll(raw, new CompressionStream('deflate-raw')).then(function(z){ return 'z' + b64u(z); });
   return Promise.resolve('j' + b64u(raw));
 }
@@ -788,7 +790,7 @@ function makeTransfer(){
   packProgress().then(function(code){
     var url = location.href.split('#')[0] + '#sync=' + code;
     var n = Object.keys(S.recs).filter(function(id){ var r = S.recs[id]; return r.n || r.wb || r.fav || r.note; }).length;
-    var h = '<p class="kbd" style="margin:6px 0">包含 ' + n + ' 道题的记录（对错、错题本、收藏、笔记）。在另一台设备上打开这个链接，就会和那边的记录合并。</p><div class="qr" id="qrBox"></div>' +
+    var h = '<p class="kbd" style="margin:6px 0">' + (Sync.on() ? '用手机相机扫码（或把链接发给自己再打开）：那台设备会立刻合并现有记录，并从此自动同步。<b>链接里含同步密钥，只发给自己。</b>' : '包含 ' + n + ' 道题的记录（对错、错题本、收藏、笔记）。在另一台设备上打开这个链接，就会和那边的记录合并。') + '</p><div class="qr" id="qrBox"></div>' +
       '<div class="row">' + (navigator.share ? '<button class="btn" id="xShare">发送到手机 / 电脑…</button>' : '') + '<button class="btn' + (navigator.share ? ' ghost' : '') + '" id="xCopy">复制链接</button></div>';
     box.innerHTML = h;
     $('#xCopy').onclick = function(){ (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(function(){ toast('链接已复制，发给自己（微信 / 邮件）后在另一台设备打开'); }, function(){ prompt('复制这个链接：', url); }); };
@@ -800,12 +802,104 @@ function makeTransfer(){
 function receiveTransfer(){
   var m = /^#sync=([zj][A-Za-z0-9_-]+)/.exec(location.hash); if (!m) return Promise.resolve(false);
   history.replaceState(null, '', location.pathname + location.search);
-  return unpackProgress(m[1]).then(function(rem){ var r = mergeIn(rem); render(); toast(r.changed ? '已合并另一台设备的记录：更新了 ' + r.changed + ' 道题' : '两边记录已经一致'); return true; })
+  return unpackProgress(m[1]).then(function(rem){ var r = mergeIn(rem); render();
+      if (rem.k && rem.k.t && !Sync.on()) return Sync.connect(rem.k.t, rem.k.g, true).then(function(ok){ toast(ok ? '已连接：这台设备从此自动同步' : '记录已合并，但自动同步没连上'); return true; });
+      toast(r.changed ? '已合并另一台设备的记录：更新了 ' + r.changed + ' 道题' : '两边记录已经一致'); if (Sync.on()) Sync.dirty(); return true; })
     .catch(function(){ toast('这个链接不完整，请重新复制一次'); return false; });
 }
 
 /* ---------- settings ---------- */
-function openSettings(){ $('#xferBox').innerHTML = '<div class="row"><button class="btn" id="xMake">生成搬运链接 / 二维码</button></div>'; $('#xMake').onclick = makeTransfer; [].forEach.call(document.querySelectorAll('[data-set]'), function(el){ var v = S.set[el.dataset.set]; if (el.type === 'checkbox') el.checked = !!v; else el.value = String(v); }); $('#settings').classList.add('open'); }
+/* ---------- automatic sync via a private GitHub Gist ---------- */
+function progressObj(){ var recs = {}; Object.keys(S.recs).forEach(function(id){ var r = S.recs[id]; if (r && (r.n || r.wb || r.fav || r.m || r.note)) recs[id] = r; }); return { app:'dsfb-practice', v:1, at:Date.now(), resetAt:S.resetAt || 0, recs:recs }; }
+var Sync = (function(){
+  var SK = 'dsfb-sync-v1', DESC = 'DSFB 刷题进度同步（Data+Lab）', FILE = 'dsfb-progress.json', API = 'https://api.github.com';
+  var cfg = {}; try { cfg = JSON.parse(localStorage.getItem(SK) || '{}') || {}; } catch(e) {}
+  var busy = false, again = false, T = 0, status = '', dirtyFlag = false;
+  function keep(){ try { localStorage.setItem(SK, JSON.stringify(cfg)); } catch(e) {} }
+  function on(){ return !!cfg.token; }
+  function hm(t){ var d = new Date(t); return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); }
+  function setStatus(t){ status = t; var el = document.getElementById('syncStatus'); if (el) el.textContent = t;
+    var d = document.getElementById('syncDot'); if (d) d.className = 'syncdot' + (on() ? (/失败|无效|离线/.test(t) ? ' err' : ' ok') : ''); }
+  function gh(method, path, body, ka){
+    return fetch(API + path, { method:method, cache:'no-store', keepalive:!!ka, headers:{ 'Authorization':'Bearer ' + cfg.token, 'Accept':'application/vnd.github+json' }, body: body ? JSON.stringify(body) : undefined })
+      .then(function(r){ if (r.status === 401) throw new Error('auth'); if (!r.ok) throw new Error('http ' + r.status); return r.status === 204 ? null : r.json(); });
+  }
+  function files(){ var f = {}; f[FILE] = { content: JSON.stringify(progressObj()) }; return f; }
+  function findGist(){
+    if (cfg.gist) return Promise.resolve(cfg.gist);
+    return gh('GET', '/gists?per_page=100').then(function(list){
+      var g = (list || []).filter(function(x){ return x.description === DESC && x.files && x.files[FILE]; })[0];
+      if (g) return g.id;
+      return gh('POST', '/gists', { description:DESC, public:false, files:files() }).then(function(n){ return n.id; });
+    }).then(function(id){ cfg.gist = id; keep(); return id; });
+  }
+  function readRemote(id){
+    return gh('GET', '/gists/' + id).then(function(g){ var f = g.files && g.files[FILE]; if (!f) return null;
+      if (!f.truncated) return f.content; return fetch(f.raw_url, { cache:'no-store' }).then(function(r){ return r.text(); }); })
+      .then(function(t){ try { return t ? JSON.parse(t) : null; } catch(e) { return null; } });
+  }
+  function localAhead(rem){
+    var rr = (rem && rem.recs) || {};
+    if ((S.resetAt || 0) > ((rem && rem.resetAt) || 0)) return true;
+    return Object.keys(S.recs).some(function(id){ var a = S.recs[id], b = rr[id]; if (!(a.n || a.wb || a.fav || a.m || a.note)) return false;
+      return !b || (a.u || 0) > (b.u || 0) || (a.nu || 0) > (b.nu || 0); });
+  }
+  function refreshUI(){ var ae = document.activeElement; if (ae && ae.id === 'noteTa') { updateCounts(); return; } if ($('#settings').classList.contains('open')) { updateCounts(); return; } render(); }
+  function run(){
+    if (!on()) return Promise.resolve();
+    if (busy) { again = true; return Promise.resolve(); }
+    busy = true; clearTimeout(T); dirtyFlag = false; setStatus('正在同步…');
+    stamp(); writeLocal();
+    var id;
+    return findGist().then(function(g){ id = g; return readRemote(id); }).then(function(rem){
+      if (!rem) return true;
+      var ahead = localAhead(rem);
+      var m = mergeIn(rem); if (m.changed) refreshUI();
+      return ahead;
+    }).then(function(push){
+      if (!push) return;
+      return gh('PATCH', '/gists/' + id, { files:files() }).catch(function(e){ if (/404/.test(e.message)) { cfg.gist = null; keep(); } throw e; });
+    }).then(function(){ cfg.last = Date.now(); keep(); setStatus('已同步 · ' + hm(cfg.last)); })
+      .catch(function(e){ dirtyFlag = true; setStatus(e.message === 'auth' ? '密钥失效了，请重新连接' : (navigator.onLine === false ? '离线中，联网后自动同步' : '同步失败，稍后自动重试')); })
+      .then(function(){ busy = false; if (again) { again = false; schedule(1500); } else if (dirtyFlag) schedule(20000); });
+  }
+  function schedule(ms){ if (!on()) return; clearTimeout(T); T = setTimeout(run, ms); }
+  function connect(token, gist, quiet){
+    token = (token || '').trim(); if (!token) { toast('先粘贴密钥'); return Promise.resolve(false); }
+    cfg = { token:token, gist:gist || null }; keep(); setStatus('正在连接…');
+    return gh('GET', '/gists?per_page=1').then(function(){ if (!quiet) toast('已开启自动同步'); renderSyncBox(); return run(); }).then(function(){ return true; })
+      .catch(function(e){ cfg = {}; keep(); renderSyncBox(); setStatus(''); toast(e.message === 'auth' ? '密钥无效：请确认复制完整，并勾选了 gist 权限' : '连接失败，检查网络后再试'); return false; });
+  }
+  function disconnect(){ cfg = {}; keep(); setStatus(''); renderSyncBox(); toast('这台设备已停止同步，本机记录保留'); }
+  document.addEventListener('visibilitychange', function(){
+    if (document.visibilityState === 'visible') schedule(200);
+    else if (on() && dirtyFlag && cfg.gist) { stamp(); writeLocal(); gh('PATCH', '/gists/' + cfg.gist, { files:files() }, true).catch(function(){}); }
+  });
+  window.addEventListener('online', function(){ schedule(300); });
+  setInterval(function(){ if (document.visibilityState === 'visible') schedule(0); }, 60000);
+  return { on:on, run:run, connect:connect, disconnect:disconnect, dirty:function(){ if (!on()) return; dirtyFlag = true; schedule(2500); },
+    key:function(){ return on() ? { t:cfg.token, g:cfg.gist || null } : null; },
+    status:function(){ return status || (cfg.last ? '已同步 · ' + hm(cfg.last) : ''); } };
+})();
+function renderSyncBox(){
+  var box = $('#syncBox'); if (!box) return;
+  if (Sync.on()) {
+    box.innerHTML = '<p class="syncline"><span class="syncdot ok"></span><b>自动同步已开启</b><span id="syncStatus">' + esc(Sync.status()) + '</span></p>' +
+      '<p class="kbd" style="margin:0 0 8px">做题、错题本、收藏、笔记都会自动同步。要让手机（或另一台电脑）也自动同步：点下面按钮，用那台设备扫码或打开链接，一次就好。</p>' +
+      '<div class="row"><button class="btn" id="xMake">📱 连接另一台设备</button><button class="btn ghost" id="syncNow">立即同步</button><button class="btn ghost" id="syncOff">停止同步</button></div><div id="xferBox"></div>';
+    $('#syncNow').onclick = function(){ Sync.run(); };
+    $('#syncOff').onclick = Sync.disconnect;
+  } else {
+    box.innerHTML = '<p class="kbd" style="margin:2px 0 8px">在<b>电脑</b>上设置一次（约 1 分钟），手机扫码就能连上，之后全自动。进度存在你自己 GitHub 账号里的一份私密记录里，别人看不到。</p>' +
+      '<ol class="steps"><li>点 <a href="https://github.com/settings/tokens/new?scopes=gist&description=DSFB%20%E5%88%B7%E9%A2%98%E5%90%8C%E6%AD%A5" target="_blank" rel="noopener"><b>这里</b></a> 打开 GitHub（权限已勾好），Expiration 选 <b>No expiration</b></li><li>拉到最下面点绿色的 <b>Generate token</b>，复制出现的 <code>ghp_…</code></li><li>粘贴到下面，点“开启”</li></ol>' +
+      '<div class="row"><input class="tokin" id="syncTok" type="password" autocomplete="off" placeholder="粘贴 ghp_… 密钥"><button class="btn" id="syncGo">开启</button></div>' +
+      '<p class="kbd" style="margin:10px 0 4px">不想设置？也可以每次换设备时手动搬一次：</p><div class="row"><button class="btn ghost" id="xMake">生成搬运链接 / 二维码</button></div><div id="xferBox"></div>';
+    $('#syncGo').onclick = function(){ var b = this; b.disabled = true; Sync.connect($('#syncTok').value).then(function(){ b.disabled = false; }); };
+  }
+  $('#xMake').onclick = makeTransfer;
+}
+
+function openSettings(){ renderSyncBox(); [].forEach.call(document.querySelectorAll('[data-set]'), function(el){ var v = S.set[el.dataset.set]; if (el.type === 'checkbox') el.checked = !!v; else el.value = String(v); }); $('#settings').classList.add('open'); }
 function closeSettings(){ $('#settings').classList.remove('open'); }
 $('#openSettings').onclick = openSettings;
 $('#closeSettings').onclick = closeSettings;
@@ -823,16 +917,16 @@ $('#importFile').onchange = function(){ var f = this.files[0]; if (!f) return; v
   rd.readAsText(f); this.value = ''; };
 var resetArmed = false;
 $('#resetBtn').onclick = function(){ if (!resetArmed) { resetArmed = true; this.textContent = '再点一次确认清空'; var b = this; setTimeout(function(){ resetArmed = false; b.textContent = '清空所有记录'; }, 3000); return; }
-  S.recs = {}; S.pos = {}; S.migrated = 0; S.resetAt = Date.now(); SNAP = {}; session = { done:0, ok:0 }; cur = null; listCache = null; save(); closeSettings(); render(); toast('记录已清空'); this.textContent = '清空所有记录'; resetArmed = false; };
+  S.recs = {}; S.pos = {}; S.migrated = 0; S.resetAt = Date.now(); SNAP = {}; Sync.dirty(); session = { done:0, ok:0 }; cur = null; listCache = null; save(); closeSettings(); render(); toast('记录已清空'); this.textContent = '清空所有记录'; resetArmed = false; };
 
 if (S.view !== 'practice' && S.view !== 'wrong' && S.view !== 'fav' && S.view !== 'wbrun' && S.view !== 'favrun') S.view = 'practice';
 function gotoHash(){ var m = /[#&]q=([^&]+)/.exec(location.hash); if (!m) return false; var id = decodeURIComponent(m[1]); if (!BY[id]) return false;
   S.view = 'practice'; S.f = { ch:'all', src:[], st:'all' }; listCache = null; var j = currentList().indexOf(id); if (j < 0) return false; posSet(j); cur = null; render(); return true; }
 window.addEventListener('hashchange', function(){ if (/^#sync=/.test(location.hash)) receiveTransfer(); else gotoHash(); });
 snapAll(); stamp();
-try { localStorage.removeItem('dsfb-sync-v1'); } catch(e) {}
 if (!gotoHash()) render();
-receiveTransfer();
+if ($('#openSettings') && !$('#syncDot')) $('#openSettings').insertAdjacentHTML('beforeend', '<span class="syncdot" id="syncDot"></span>');
+receiveTransfer().then(function(paired){ if (!paired && Sync.on()) Sync.run(); });
 if (S.migrated && !S.migratedShown) { toast('已从旧版题库导入 ' + S.migrated + ' 条记录'); S.migratedShown = true; save(); }
 })();
 </script>
