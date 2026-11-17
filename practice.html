@@ -122,6 +122,20 @@ details.sec summary{cursor:pointer;font-weight:600;padding:8px 0;color:var(--mut
 .sheet .row{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
 .kbd{font-size:12px;color:var(--muted);margin-top:14px;line-height:1.8}
 .kbd code{background:#fff;border:1px solid var(--line);border-radius:4px;padding:0 5px}
+.fig{margin-top:14px;padding-top:12px;border-top:1px dashed var(--line)}
+.fig h5{margin:0 0 10px}
+.fig svg{margin-bottom:8px}
+.svgw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+@media(max-width:640px){.svgw svg{min-width:440px}}
+ul.fx{margin:6px 0 0;padding:10px 14px 10px 30px;background:var(--cream);border-radius:8px;font-size:13.5px;line-height:1.75}
+ul.fx li{margin:2px 0}
+figure.slide{margin:14px 0 0}
+figure.slide img{width:100%;border:1px solid var(--line);border-radius:8px;cursor:zoom-in;display:block;background:#fff}
+figure.slide figcaption{font-size:12px;color:var(--muted);margin-top:6px}
+.zoom{position:fixed;inset:0;background:rgba(10,14,12,.88);z-index:60;display:none;align-items:center;justify-content:center;flex-direction:column;gap:10px;padding:16px;cursor:zoom-out}
+.zoom.open{display:flex}
+.zoom img{max-width:100%;max-height:88vh;border-radius:6px;background:#fff}
+.zoom span{color:#c9d0ca;font-size:13px}
 @media(max-width:640px){
   .top-in{height:52px;gap:6px}
   .back{display:none}
@@ -159,6 +173,7 @@ details.sec summary{cursor:pointer;font-weight:600;padding:8px 0;color:var(--mut
 </div></div>
 
 <div class="toast" id="toast"></div>
+<div class="zoom" id="zoom" onclick="this.classList.remove('open')"><img alt="课件原图"><span>点任意处关闭</span></div>
 
 <div class="modal" id="settings"><div class="sheet">
   <h3>设置</h3>
@@ -177,7 +192,7 @@ details.sec summary{cursor:pointer;font-weight:600;padding:8px 0;color:var(--mut
   <div class="row"><button class="btn" id="closeSettings">完成</button></div>
 </div></div>
 
-<script src="./practice-data.js?v=1"></script>
+<script src="./practice-data.js?v=2"></script>
 <script>
 (function(){
 'use strict';
@@ -300,6 +315,164 @@ function openLesson(q){
   location.href = './';
 }
 
+/* ---------- diagrams & formula cards (shown in the explanation when relevant) ---------- */
+var C = { ink:'#16211c', ok:'#2f7d4f', okbg:'#e5f1e6', bad:'#b5473a', badbg:'#f9e3de', warn:'#a87a12', warnbg:'#fbf1d4', mu:'#6d746f', line:'#d7d5cb', cream:'#ebe8dc', blue:'#3b5bdb', bluebg:'#e2e7f7' };
+function svg(w, h, body){ return '<svg viewBox="0 0 ' + w + ' ' + h + '" role="img" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:' + w + 'px;height:auto;display:block;margin:0 auto">' + '<defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="' + C.ink + '"/></marker></defs>' + body + '</svg>'; }
+function tx(x, y, t, o){ o = o || {}; return '<text x="' + x + '" y="' + y + '" font-size="' + (o.s || 13) + '" fill="' + (o.c || C.ink) + '" text-anchor="' + (o.a || 'middle') + '"' + (o.b ? ' font-weight="700"' : '') + ' font-family="Inter,PingFang SC,Microsoft YaHei,sans-serif">' + t + '</text>'; }
+function rect(x, y, w, h, f, s){ return '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="6" fill="' + f + '" stroke="' + (s || C.line) + '"/>'; }
+function line(x1, y1, x2, y2, o){ o = o || {}; return '<line x1="' + x1 + '" y1="' + y1 + '" x2="' + x2 + '" y2="' + y2 + '" stroke="' + (o.c || C.ink) + '" stroke-width="' + (o.w || 1.5) + '"' + (o.d ? ' stroke-dasharray="5 4"' : '') + (o.ar ? ' marker-end="url(#ar)"' : '') + '/>'; }
+function curve(f, x0, y0, w, h, n){ var p = []; for (var i = 0; i <= (n || 60); i++) { var t = i / (n || 60); p.push((x0 + t * w).toFixed(1) + ',' + (y0 + h - f(t) * h).toFixed(1)); } return p.join(' '); }
+function F(list){ return '<ul class="fx">' + list.map(function(l){ return '<li>' + l + '</li>'; }).join('') + '</ul>'; }
+
+var DIAG = [
+ { k:'cb', title:'成本收益矩阵与成本敏感阈值', re:/cost-benefit|成本收益|\bcb_?\s?[01]{2}|\bcb[01]{2}|reasonableness|合理性条件|T_?CS|cost-sensitive (threshold|decision)|成本敏感阈值|Ca\s*\/\s*A|predicted expected profit|期望利润|\bP-EP\b|\bA-EP\b|\bAAEP\b/i,
+   draw:function(){ return svg(520, 230,
+     tx(70, 22, '预测 ↓ / 实际 →', { s:11, c:C.mu }) + tx(170, 22, '实际 0', { b:1 }) + tx(270, 22, '实际 1', { b:1 }) +
+     tx(70, 64, '预测 0', { b:1 }) + tx(70, 124, '预测 1', { b:1 }) +
+     rect(125, 34, 90, 50, C.okbg) + tx(170, 64, 'cb₀₀ 判对') + rect(225, 34, 90, 50, C.badbg) + tx(270, 64, 'cb₀₁ 漏判') +
+     rect(125, 94, 90, 50, C.badbg) + tx(170, 124, 'cb₁₀ 误判') + rect(225, 94, 90, 50, C.okbg) + tx(270, 124, 'cb₁₁ 判对') +
+     tx(420, 50, '决策：比较两行', { b:1 }) + tx(420, 72, '哪一行的期望利润高', { s:12, c:C.mu }) + tx(420, 90, '就预测哪一类', { s:12, c:C.mu }) +
+     tx(420, 122, '合理性：判错 < 判对', { s:12, c:C.warn, b:1 }) + tx(420, 140, 'cb₁₀ < cb₀₀，cb₀₁ < cb₁₁', { s:12, c:C.warn }) +
+     line(40, 190, 480, 190, { w:3, c:C.line }) + rect(40, 184, 210, 12, C.okbg, C.okbg) + rect(250, 184, 230, 12, C.badbg, C.badbg) +
+     line(250, 172, 250, 206, { w:2.5, c:C.ink }) + tx(250, 166, 'T_CS', { b:1 }) +
+     tx(40, 222, '0', { a:'start', c:C.mu }) + tx(480, 222, 'p(1|x) = 1', { a:'end', c:C.mu }) + tx(145, 222, '预测 0', { c:C.ok, s:12 }) + tx(365, 222, '预测 1', { c:C.bad, s:12 })) +
+     F(['预测为 i 的期望利润：PEP(i) = p(0|x)·cb<sub>i0</sub> + p(1|x)·cb<sub>i1</sub>（看一<b>行</b>）；已知真实类别时的 A-EP 看一<b>列</b>',
+        'T<sub>CS</sub> = (cb<sub>00</sub> − cb<sub>10</sub>) / (cb<sub>11</sub> − cb<sub>10</sub> + cb<sub>00</sub> − cb<sub>01</sub>)；两种错误代价相等时 = 0.5',
+        '欺诈：p(欺诈) > Ca / A 就拦截（金额越大，阈值越低）']); } },
+ { k:'cm', title:'混淆矩阵与常用指标', re:/confusion matrix|混淆矩阵|sensitivity|specificity|敏感度|特异度|precision|recall|精确率|召回率|\bF1\b|\bF-?β|true positive|false positive|false negative|true negative|假阳|假阴|真阳|真阴|error rate|错误率/i,
+   draw:function(){ return svg(520, 200,
+     tx(90, 22, '预测 ↓ / 实际 →', { s:11, c:C.mu }) + tx(205, 22, '实际 正类', { b:1 }) + tx(325, 22, '实际 负类', { b:1 }) +
+     tx(90, 66, '预测 正类', { b:1 }) + tx(90, 136, '预测 负类', { b:1 }) +
+     rect(150, 34, 110, 60, C.okbg) + tx(205, 62, 'TP', { b:1, s:16, c:C.ok }) + tx(205, 82, '抓到了', { s:11, c:C.mu }) +
+     rect(270, 34, 110, 60, C.badbg) + tx(325, 62, 'FP', { b:1, s:16, c:C.bad }) + tx(325, 82, '误报', { s:11, c:C.mu }) +
+     rect(150, 104, 110, 60, C.badbg) + tx(205, 132, 'FN', { b:1, s:16, c:C.bad }) + tx(205, 152, '漏掉了', { s:11, c:C.mu }) +
+     rect(270, 104, 110, 60, C.okbg) + tx(325, 132, 'TN', { b:1, s:16, c:C.ok }) + tx(325, 152, '正确排除', { s:11, c:C.mu }) +
+     tx(450, 66, '← 看这一行：精确率', { s:11, c:C.mu }) + tx(205, 186, '↑ 这一列：敏感度', { s:11, c:C.mu }) + tx(325, 186, '↑ 这一列：特异度', { s:11, c:C.mu })) +
+     F(['敏感度 / 召回率 = TP / (TP + FN)（真正类里抓到多少）', '特异度 = TN / (TN + FP)（真负类里排除了多少）', '精确率 = TP / (TP + FP)（报警里有多少是真的）',
+        '准确率 = (TP + TN) / N，错误率 = 1 − 准确率', 'F1 = 2 · 精确率 · 召回率 / (精确率 + 召回率)', '注意：行列哪个是预测、哪个是实际是惯例问题，先看清题目的排法']); } },
+ { k:'roc', title:'ROC 曲线、AUC 与 Gini', re:/\bROC\b|\bAUC\b|accuracy ratio|准确率比|\bCAP\b|Lorenz|power curve|(?:^|[^a-z])Gini(?! (index|impurity|measure))(?![^。.]*?(impurity|不纯|node|节点|split|分裂))/i,
+   draw:function(){ var x0 = 60, y0 = 20, w = 220, h = 180;
+     return svg(520, 240,
+     '<polygon points="' + x0 + ',' + (y0 + h) + ' ' + curve(function(t){ return Math.pow(t, 0.35); }, x0, y0, w, h) + ' ' + (x0 + w) + ',' + (y0 + h) + '" fill="' + C.okbg + '"/>' +
+     '<polyline points="' + curve(function(t){ return Math.pow(t, 0.35); }, x0, y0, w, h) + '" fill="none" stroke="' + C.ok + '" stroke-width="2.5"/>' +
+     line(x0, y0 + h, x0 + w, y0, { d:1, c:C.mu }) + line(x0, y0 + h, x0 + w, y0 + h) + line(x0, y0 + h, x0, y0) +
+     '<circle cx="' + x0 + '" cy="' + y0 + '" r="5" fill="' + C.blue + '"/>' + tx(x0 + 8, y0 + 4, '完美 (0,1)', { a:'start', s:11, c:C.blue }) +
+     tx(x0 + 150, y0 + 120, '随机 AUC=0.5', { s:11, c:C.mu }) + tx(x0 + 120, y0 + 150, 'AUC = 阴影面积', { s:12, c:C.ok, b:1 }) +
+     tx(x0 + w / 2, y0 + h + 30, '1 − 特异度（误报率）', { s:12 }) + '<text x="22" y="' + (y0 + h / 2) + '" font-size="12" text-anchor="middle" transform="rotate(-90 22 ' + (y0 + h / 2) + ')" fill="' + C.ink + '">敏感度（检出率）</text>' +
+     tx(400, 60, '阈值从高到低移动', { s:12, c:C.mu }) + tx(400, 80, '每个阈值 = 曲线上一点', { s:12, c:C.mu }) + tx(400, 120, 'AR(Gini) = 2·AUC − 1', { b:1 }) + tx(400, 142, '随机 0 · 完美 1', { s:12, c:C.mu })) +
+     F(['AUC = 随机抽一个正类、一个负类，正类得分更高的概率；不依赖阈值', 'Gini / 准确率比 AR = 2·AUC − 1，反过来 AUC = (AR + 1)/2', 'AUC < 0.5：排序方向反了，把得分反过来就 > 0.5']); } },
+ { k:'uplift', title:'Uplift 的四类客户', re:/persuadable|sleeping dog|do-not-disturb|sure thing|lost cause|可说服|睡狗|铁定|无可挽回|uplift model|\bITE\b/i,
+   draw:function(){ return svg(520, 220,
+     tx(100, 22, '不联系时 ↓ / 联系时 →', { s:11, c:C.mu }) + tx(240, 22, '会留下', { b:1 }) + tx(380, 22, '会流失', { b:1 }) +
+     tx(100, 70, '会留下', { b:1 }) + tx(100, 150, '会流失', { b:1 }) +
+     rect(170, 34, 140, 70, C.cream) + tx(240, 64, 'Sure things', { b:1 }) + tx(240, 84, '铁定留下 · 联系白花钱', { s:11, c:C.mu }) +
+     rect(320, 34, 140, 70, C.badbg) + tx(390, 64, 'Sleeping dogs', { b:1, c:C.bad }) + tx(390, 84, '睡狗 · 联系反而流失', { s:11, c:C.bad }) +
+     rect(170, 114, 140, 70, C.okbg) + tx(240, 144, 'Persuadables', { b:1, c:C.ok }) + tx(240, 164, '可说服 · 唯一该联系的', { s:11, c:C.ok }) +
+     rect(320, 114, 140, 70, C.cream) + tx(390, 144, 'Lost causes', { b:1 }) + tx(390, 164, '无可挽回 · 怎样都走', { s:11, c:C.mu }) +
+     tx(260, 210, '先看“被联系没有”定行/列，再看“走没走”，就能锁定两个格子', { s:11, c:C.mu })) +
+     F(['ITE = Y(T=1) − Y(T=0)，Y = 1 表示不流失：Persuadables +1，Sleeping dogs −1，其余两类 0',
+        '被联系且留下 → Sure things 或 Persuadables；被联系却流失 → Sleeping dogs 或 Lost causes',
+        '没被联系且留下 → Sure things 或 Sleeping dogs；没被联系就流失 → Persuadables 或 Lost causes']); } },
+ { k:'confound', title:'混杂因子', re:/confound|混杂因|混杂偏差|混杂变量|Simpson|辛普森|spurious|伪相关|ice cream|冰淇淋/i,
+   draw:function(){ return svg(520, 170,
+     rect(210, 14, 100, 40, C.warnbg, C.warn) + tx(260, 39, 'Z 混杂因子', { b:1, c:C.warn }) +
+     rect(60, 110, 120, 40, '#fff') + tx(120, 135, 'T 处理/原因') + rect(340, 110, 120, 40, '#fff') + tx(400, 135, 'Y 结果') +
+     line(225, 56, 150, 106, { ar:1 }) + line(295, 56, 370, 106, { ar:1 }) + line(182, 130, 336, 130, { ar:1, d:1, c:C.mu }) + tx(260, 122, '看到的相关 ≠ 因果', { s:11, c:C.mu })) +
+     F(['例：天热(Z) 同时让冰淇淋销量(T)和鲨鱼袭击(Y)上升；机器年龄同时决定维护次数和故障率', '解决：随机对照实验（RCT）打断 Z → T；或在模型里控制 Z（可忽略性假设）', '辛普森悖论：各子群的效应与总体平均效应方向相反，通常因为混杂']); } },
+ { k:'dag', title:'因果图：直接效应 + 间接效应', re:/\bDAG\b|因果图|total effect|总效应|direct effect|indirect effect|直接效应|间接效应|directed acyclic/i,
+   draw:function(){ return svg(520, 170,
+     rect(30, 110, 110, 40, '#fff') + tx(85, 135, 'X 原因', { b:1 }) + rect(205, 14, 110, 40, '#fff') + tx(260, 39, 'M 中介', { b:1 }) + rect(380, 110, 110, 40, '#fff') + tx(435, 135, 'Y 结果', { b:1 }) +
+     line(110, 108, 220, 56, { ar:1 }) + tx(150, 74, 'a', { b:1, c:C.blue }) + line(300, 56, 410, 108, { ar:1 }) + tx(370, 74, 'b', { b:1, c:C.blue }) +
+     line(142, 130, 376, 130, { ar:1 }) + tx(260, 122, 'c（直接）', { b:1, c:C.ok }) + tx(260, 165, '总效应 = c + a × b', { b:1, s:14 })) +
+     F(['间接效应 = 路径上的系数相乘：a × b（负 × 负 = 正）', '例：距离→价格 −3，价格→航班 −5，距离→航班 −10：总效应 = −10 + (−3)(−5) = +5', '“固定价格”问的是直接效应 c；“总体影响”问的是总效应']); } },
+ { k:'impurity', title:'不纯度：熵与 Gini', re:/entropy|熵|gini (index|impurity|measure)|基尼|impurity|不纯|information gain|信息增益|\bSDR\b|standard deviation reduction|标准差下降/i,
+   draw:function(){ var x0 = 50, y0 = 20, w = 260, h = 160;
+     var H = function(p){ return p <= 0 || p >= 1 ? 0 : -(p * Math.log2(p) + (1 - p) * Math.log2(1 - p)); };
+     return svg(520, 220,
+     line(x0, y0 + h, x0 + w, y0 + h) + line(x0, y0 + h, x0, y0) +
+     '<polyline points="' + curve(H, x0, y0, w, h) + '" fill="none" stroke="' + C.blue + '" stroke-width="2.5"/>' +
+     '<polyline points="' + curve(function(p){ return 2 * p * (1 - p); }, x0, y0, w, h) + '" fill="none" stroke="' + C.ok + '" stroke-width="2.5"/>' +
+     tx(x0 + w / 2, y0 - 4, '熵 最大 1', { s:11, c:C.blue }) + tx(x0 + w / 2, y0 + h / 2 + 16, 'Gini 最大 0.5', { s:11, c:C.ok }) +
+     tx(x0, y0 + h + 18, '0', { c:C.mu }) + tx(x0 + w / 2, y0 + h + 18, '0.5', { c:C.mu }) + tx(x0 + w, y0 + h + 18, '1', { c:C.mu }) + tx(x0 + w / 2, y0 + h + 36, '节点中正类比例 p', { s:12 }) +
+     tx(420, 60, '两端 = 纯（不纯度 0）', { s:12, c:C.mu }) + tx(420, 82, '50/50 = 最不纯', { s:12, c:C.mu }) + tx(420, 120, '分裂选信息增益最大的', { s:12, b:1 })) +
+     F(['熵 = −Σ p·log₂p（50/50 时为 1）', 'Gini = 1 − Σ p²，二分类 = 2p(1 − p)（50/50 时为 0.5）', '信息增益 = 父节点不纯度 − Σ(子节点样本占比 × 子节点不纯度)',
+        '回归树：标准差下降 SDR = 分裂前标准差 − 分裂后加权标准差，选最大的']); } },
+ { k:'biasvar', title:'偏差与方差', re:/bias[- ]variance|偏差[-–与和 ]*方差|\b(high|low) (bias|variance)\b|(高|低)(偏差|方差)|variance (across|of the)|inherent randomness|固有随机|Bayes (error|rate)|贝叶斯错误|overfit|underfit|过拟合|欠拟合|unstable classifier|不稳定(的)?分类器/i,
+   draw:function(){ function target(cx, cy, pts, lbl){ return '<circle cx="' + cx + '" cy="' + cy + '" r="42" fill="#fff" stroke="' + C.line + '"/><circle cx="' + cx + '" cy="' + cy + '" r="26" fill="none" stroke="' + C.line + '"/><circle cx="' + cx + '" cy="' + cy + '" r="9" fill="' + C.warnbg + '" stroke="' + C.warn + '"/>' + pts.map(function(p){ return '<circle cx="' + (cx + p[0]) + '" cy="' + (cy + p[1]) + '" r="3.5" fill="' + C.blue + '"/>'; }).join('') + tx(cx, cy + 62, lbl, { s:11 }); }
+     return svg(520, 170,
+     target(70, 60, [[2,-3],[-3,2],[3,3],[-2,-2],[1,1]], '低偏差 低方差 ✓') + target(195, 60, [[-25,-14],[18,-24],[22,20],[-20,22],[4,-30]], '低偏差 高方差') +
+     target(320, 60, [[22,-20],[26,-16],[19,-24],[25,-22],[21,-18]], '高偏差 低方差') + target(445, 60, [[30,10],[10,-30],[-28,-8],[36,-14],[-12,30]], '高偏差 高方差')) +
+     F(['偏差：方法本身拟合不了真实关系（如用直线拟合曲线）→ 欠拟合', '方差：换一份训练样本结果变化很大（不稳定）→ 过拟合', '固有随机性（贝叶斯错误率）任何方法都消除不了', '集成（bagging/随机森林）主要降低方差，所以对决策树这类高方差方法最有效']); } },
+ { k:'assoc', title:'关联规则：支持度、置信度、提升度', re:/\bsupport\b(?! vector)|\bconfidence\b(?! interval| level)|支持度|置信度|association rule|关联规则|apriori|frequent itemset|频繁项集|basket/i,
+   draw:function(){ return svg(520, 160,
+     '<circle cx="190" cy="78" r="62" fill="' + C.bluebg + '" fill-opacity=".85" stroke="' + C.blue + '"/>' + '<circle cx="285" cy="78" r="62" fill="' + C.okbg + '" fill-opacity=".7" stroke="' + C.ok + '"/>' +
+     tx(160, 82, 'X', { b:1, s:16, c:C.blue }) + tx(318, 82, 'Y', { b:1, s:16, c:C.ok }) + tx(238, 80, 'X∩Y', { b:1, s:12 }) +
+     tx(440, 50, 'support = X∩Y / 全部', { s:12 }) + tx(440, 78, 'confidence = X∩Y / X', { s:12 }) + tx(440, 106, 'lift = conf / P(Y)', { s:12, b:1 })) +
+     F(['支持度 = 同时包含 X 和 Y 的交易 / 总交易数', '置信度 = P(Y | X) = support(X∪Y) / support(X)（分母是前件）', '提升度 = 置信度 / support(Y)：> 1 互补，= 1 独立，< 1 替代',
+        'Apriori 剪枝：不频繁项集的所有超集都不频繁（反过来不成立）']); } },
+ { k:'lift', title:'提升度（Lift）与十分位', re:/\blift\b|提升度|decile|十分位|cumulative gains|qini|uplift curve/i,
+   draw:function(){ var v = [5.2, 3.6, 2.4, 1.6, 1.2, 0.8, 0.5, 0.4, 0.2, 0.1], x0 = 50, y0 = 20, h = 130, bw = 30; var mx = 5.5;
+     return svg(520, 200,
+     line(x0, y0 + h, x0 + 10 * (bw + 6), y0 + h) + v.map(function(t, i){ var bh = t / mx * h; return rect(x0 + 4 + i * (bw + 6), y0 + h - bh, bw, bh, i < 2 ? C.okbg : '#fff', i < 2 ? C.ok : C.line) + tx(x0 + 4 + i * (bw + 6) + bw / 2, y0 + h + 16, String(i + 1), { s:11, c:C.mu }); }).join('') +
+     line(x0, y0 + h - h / mx, x0 + 10 * (bw + 6), y0 + h - h / mx, { d:1, c:C.bad }) + tx(x0 + 10 * (bw + 6) + 6, y0 + h - h / mx + 4, '随机 = 1', { a:'start', s:11, c:C.bad }) +
+     tx(x0 + 5 * (bw + 6), y0 + h + 36, '按模型得分从高到低分成十段', { s:12 })) +
+     F(['Lift = 该段中正类比例 / 总体正类比例（随机模型永远是 1）', '例：前 10% 客户中 30% 流失，总体 5% → top-decile lift = 6', '业务只能联系前 x% 时，看前 x% 的 lift 比看 AUC 更贴近决策']); } },
+ { k:'gd', title:'梯度下降', re:/gradient descent|梯度下降|learning rate|学习率|backprop|反向传播|local minim|局部最|momentum|动量|epoch/i,
+   draw:function(){ var f = function(t){ return 0.55 + 0.35 * Math.cos(t * 9.5) * (1 - t * 0.6) - 0.2 * t; }, x0 = 40, y0 = 15, w = 300, h = 150;
+     var pts = [0.08, 0.16, 0.22, 0.27, 0.31].map(function(t){ return [x0 + t * w, y0 + h - f(t) * h]; });
+     return svg(520, 190,
+     '<polyline points="' + curve(f, x0, y0, w, h, 120) + '" fill="none" stroke="' + C.ink + '" stroke-width="2"/>' +
+     pts.map(function(p, i){ return '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="5" fill="' + (i === pts.length - 1 ? C.warn : C.blue) + '"/>'; }).join('') +
+     tx(pts[4][0] + 6, pts[4][1] + 22, '局部最小', { s:11, c:C.warn }) + tx(x0 + 0.93 * w, y0 + h - f(0.93) * h + 24, '全局最小', { s:11, c:C.ok }) +
+     tx(x0 + w / 2, y0 + h + 22, '权重 w', { s:12 }) + tx(440, 50, '每一步沿负梯度走', { s:12 }) + tx(440, 72, 'w ← w − η·∂E/∂w', { s:13, b:1 }) + tx(440, 110, 'η 太大：振荡/发散', { s:12, c:C.bad }) + tx(440, 130, 'η 太小：很慢', { s:12, c:C.mu })) +
+     F(['更新：w<sub>new</sub> = w<sub>old</sub> − η · ∂E/∂w（例：0.5 − 0.1×0.2 = 0.48）', '误差函数非凸 → 可能停在局部最小；预训练（多组随机初始权重）可缓解', '一个 epoch = 所有训练观测各通过网络一次；动量用上一步方向平滑当前步']); } },
+ { k:'ses', title:'简单预测方法与指数平滑', re:/exponential smoothing|指数平滑|na[iï]ve|朴素|mean method|均值法|seasonal naive|季节朴素|\bETS\b|Holt/i,
+   draw:function(){ var a = 0.5, x0 = 60, y0 = 20, h = 120, bw = 34;
+     return svg(520, 190,
+     line(x0, y0 + h, x0 + 8 * (bw + 8), y0 + h) + [0,1,2,3,4,5,6,7].map(function(k){ var wv = a * Math.pow(1 - a, k), bh = wv / a * h; return rect(x0 + 4 + (7 - k) * (bw + 8), y0 + h - bh, bw, bh, k === 0 ? C.okbg : C.bluebg, k === 0 ? C.ok : C.blue) + tx(x0 + 4 + (7 - k) * (bw + 8) + bw / 2, y0 + h + 16, k === 0 ? 'y_t' : 't−' + k, { s:10, c:C.mu }); }).join('') +
+     tx(x0 + 4 * (bw + 8), y0 + h + 38, '权重 α(1−α)^k，越旧越小（α = 0.5）', { s:12 })) +
+     F(['指数平滑：ŷ<sub>t+1</sub> = α·y<sub>t</sub> + (1 − α)·ŷ<sub>t</sub>（例：α=0.5，观测 120，旧预测 100 → 110）', 'α → 1 接近朴素法；α → 0 接近对长期历史取平均',
+        '均值法 = 全部历史平均；朴素法 = 最近一期；季节朴素 = 上一个同季节的值（不是取平均！）']); } },
+ { k:'dist', title:'距离：欧氏与曼哈顿', re:/euclidean|欧氏|manhattan|曼哈顿|mahalanobis|马氏|k-?nearest|\bkNN\b|近邻|k-?means|Jaccard|Hamming|汉明|Levenshtein/i,
+   draw:function(){ return svg(520, 170,
+     line(60, 150, 300, 150, { c:C.line }) + line(60, 150, 60, 10, { c:C.line }) +
+     '<circle cx="90" cy="130" r="6" fill="' + C.blue + '"/>' + tx(90, 162, 'A', { b:1 }) + '<circle cx="250" cy="40" r="6" fill="' + C.ok + '"/>' + tx(262, 36, 'B', { b:1, a:'start' }) +
+     line(90, 130, 250, 40, { w:2.5, c:C.ink }) + line(90, 130, 250, 130, { d:1, c:C.warn, w:2 }) + line(250, 130, 250, 40, { d:1, c:C.warn, w:2 }) +
+     tx(150, 78, '欧氏 = 斜边', { s:12, b:1 }) + tx(170, 146, '|Δx|', { s:11, c:C.warn }) + tx(262, 90, '|Δy|', { s:11, c:C.warn, a:'start' }) +
+     tx(420, 60, '欧氏 = √(Δx² + Δy²)', { s:12 }) + tx(420, 84, '曼哈顿 = |Δx| + |Δy|', { s:12, c:C.warn }) + tx(420, 120, '先标准化！', { s:13, b:1, c:C.bad })) +
+     F(['例：(50,20) 与 (30,10)：欧氏 = √(400+100) ≈ 22.36，曼哈顿 = 30', '不标准化时，数值大的变量（如收入）会主导距离', '集合用 Jaccard（1 − 交集/并集），等长类别向量用汉明，序列用 Levenshtein']); } },
+ { k:'woe', title:'证据权重 WOE 与信息值 IV', re:/weight of evidence|\bWOE\b|证据权重|information value|信息值|\bIV\b/,
+   draw:function(){ return F(['WOE = ln(好客户分布 / 坏客户分布)（讲义里再 × 100）', 'WOE > 0：这一组好客户相对更多，风险低于平均；WOE < 0：风险更高；两组 WOE 相同 = 风险相同',
+        'IV = Σ (好客户分布 − 坏客户分布) × ln(好客户分布 / 坏客户分布)：衡量变量强弱，不反映关系形状',
+        '例：30% 的好客户、15% 的坏客户落在某组 → WOE = ln 2 ≈ 0.693（×100 = 69.31），该组 IV 贡献 = 0.15 × 0.693 ≈ 0.104',
+        'WOE 用的是类内分布，所以对坏客户过采样不会改变 WOE；切分数据之前计算 WOE 会造成泄露']); } },
+ { k:'aic', title:'AIC / BIC', re:/\bAIC\b|\bBIC\b|information criteri|信息准则/i,
+   draw:function(){ return F(['AIC = −2·log L + 2 × 参数个数', 'BIC = −2·log L + 参数个数 × log(n)：n > 7 时 BIC 惩罚更重', '越小越好；只能比较<b>同一数据集</b>上拟合的模型', '例：5 个参数、log L = −200 → AIC = 400 + 10 = 410']); } },
+ { k:'credit', title:'信用风险公式', re:/expected loss|预期损失|\bEAD\b|\bLGD\b|\bCCF\b|\bRWA\b|regulatory capital|监管资本|risk weight|风险权重|capital requirement|资本要求|IFRS ?9|stage [123]|lifetime PD|终身 ?PD/i,
+   draw:function(){ return F(['预期损失 EL = PD × LGD × EAD（例：2% × 40% × 50,000 = 400）', 'EAD = 已用 + CCF × (额度 − 已用)；CCF = (EAD − 已用) / (额度 − 已用)', 'LGD = 1 − 回收率',
+        '标准法：资本 = 8% × RWA，RWA = 风险权重 × 敞口（例：$100 万 × 20% × 8% = $1.6 万）', 'IRB：资本 = K × EAD，RWA = 12.5 × K × EAD；资本对 LGD、EAD 线性，对 PD 非线性',
+        '监管资本只覆盖<b>非预期损失</b>，预期损失靠拨备；IFRS 9 第 1 阶段 12 个月 PD，第 2/3 阶段终身 PD']); } },
+ { k:'te', title:'处理效应 ITE / ATE / CATE', re:/\bATE\b|\bCATE\b|treatment effect|处理效应|T-learner|S-learner|meta-learner|元学习|transformed outcome|转换结果/i,
+   draw:function(){ return F(['ITE = Y(T=1) − Y(T=0)：同一个人两个潜在结果之差，<b>永远观察不到</b>其中一个（因果推断根本问题）', 'ATE = 处理组平均结果 − 对照组平均结果（随机实验下无偏；观察数据可能被混杂带偏）',
+        'CATE = P(Y=1 | X, T=1) − P(Y=1 | X, T=0)', 'T-learner：处理组、对照组各建一个模型取差；S-learner：一个模型把 T 当输入（加交互项才有异质效应）',
+        '转换结果法：处理组响应者、对照组未响应者 → y′ = 1，其余 y′ = 0']); } },
+ { k:'nnparam', title:'神经网络参数个数', re:/how many (weight|parameter)|多少个(权重)?参数|parameters? \(including biases\)/i,
+   draw:function(){ return F(['单隐藏层、单输出：参数个数 = (k + 1) × h + h + 1（k 输入，h 隐藏神经元，含偏置）', '例：5 个输入、4 个隐藏神经元 → 6×4 + 4 + 1 = 29']); } }
+];
+function diagramsFor(q){
+  var t = [q.q, q.qz, q.o[q.a], (q.oz || [])[q.a], q.story].join(' ');
+  var out = [], has = {};
+  for (var i = 0; i < DIAG.length && out.length < 2; i++) {
+    var d = DIAG[i]; if (!d.re.test(t)) continue;
+    if (d.k === 'lift' && has.assoc) continue;
+    if (d.k === 'roc' && !/ROC|AUC|CAP|accuracy ratio|准确率比|Lorenz/i.test(t) && /impurity|不纯|节点|node|tree|树|split|分裂|CART/i.test(t)) continue;
+    if (d.k === 'confound' && (has.dag || has.te)) continue;
+    out.push(d); has[d.k] = 1;
+  }
+  return out;
+}
+function slideSrc(q){ return './slide-pages/' + q.l + '/page-' + String(q.p).padStart(3, '0') + '.webp'; }
+
 /* ---------- rendering ---------- */
 function updateCounts(){ var c = counts(); $('#wbCount').textContent = c.wb || ''; $('#favCount').textContent = c.fav || '';
   [].forEach.call(document.querySelectorAll('#tabs button'), function(b){ var v = b.dataset.v; b.classList.toggle('on', v === S.view || (v === 'wrong' && S.view === 'wbrun') || (v === 'fav' && S.view === 'favrun')); }); }
@@ -372,6 +545,13 @@ function renderQuestion(){
     if (q.e) h += '<p>' + esc(q.e) + '</p>';
     if (q.clue) h += '<p><b>识别线索：</b>' + esc(q.clue) + '</p>';
     if (q.en) h += '<p style="color:var(--muted)"><i>' + esc(q.en) + '</i></p>';
+    var dg = diagramsFor(q);
+    dg.forEach(function(d){ var o = d.draw(); var i = o.indexOf('<ul class="fx">'); var pic = i < 0 ? o : o.slice(0, i), fx = i < 0 ? '' : o.slice(i);
+      h += '<div class="fig"><h5>图解 · ' + d.title + '</h5>' + (pic ? '<div class="svgw">' + pic + '</div>' : '') + fx + '</div>'; });
+    if (q.p > 0) {
+      if (q.v || cur.slide) h += '<figure class="slide"><img src="' + slideSrc(q) + '" alt="课件第 ' + q.p + ' 页" loading="lazy" data-zoom="1"><figcaption>课件第 ' + q.p + ' 页' + (q.t ? ' · ' + esc(q.t) : '') + ' · 点图放大</figcaption></figure>';
+      else h += '<button class="tool" data-act="slide" style="margin-top:10px">🖼 看课件原图（第 ' + q.p + ' 页）</button>';
+    }
     h += '</div>';
   }
   h += '<div class="tools">' +
@@ -425,6 +605,7 @@ function bind(){
   var cf = $('#clearF'); if (cf) cf.onclick = function(){ S.f = { ch:'all', src:[], st:'all' }; listCache = null; cur = null; save(); render(); };
 }
 document.addEventListener('click', function(e){
+  if (e.target.dataset && e.target.dataset.zoom) { var z = $('#zoom'); z.querySelector('img').src = e.target.src; z.classList.add('open'); return; }
   var t = e.target.closest('[data-k],[data-act],[data-st],[data-src],[data-sort],[data-run],[data-open],[data-go],[data-unm],#tabs button');
   if (!t) return;
   if (t.dataset.unm) { e.preventDefault(); e.stopPropagation(); var r = rec(null, t.dataset.unm); r.m = false; r.wb = true; r.st = 0; save(); toast('已放回错题本'); render(); return; }
@@ -435,6 +616,7 @@ document.addEventListener('click', function(e){
   if (a === 'fav') return toggleFav();
   if (a === 'wb') return toggleWB();
   if (a === 'lesson') return openLesson(BY[cur.id]);
+  if (a === 'slide') { cur.slide = true; return renderQuestion(); }
   if (t.dataset.st) { S.f.st = t.dataset.st; listCache = null; cur = null; save(); return render(); }
   if (t.dataset.src) { var i = S.f.src.indexOf(t.dataset.src); if (i < 0) S.f.src.push(t.dataset.src); else S.f.src.splice(i, 1); listCache = null; cur = null; S.fOpen = true; save(); return render(); }
   if (t.dataset.sort) { S.wbSort = t.dataset.sort; save(); return render(); }
@@ -503,7 +685,10 @@ $('#resetBtn').onclick = function(){ if (!resetArmed) { resetArmed = true; this.
   S.recs = {}; S.pos = {}; S.migrated = 0; session = { done:0, ok:0 }; cur = null; listCache = null; save(); closeSettings(); render(); toast('记录已清空'); this.textContent = '清空所有记录'; resetArmed = false; };
 
 if (S.view !== 'practice' && S.view !== 'wrong' && S.view !== 'fav' && S.view !== 'wbrun' && S.view !== 'favrun') S.view = 'practice';
-render();
+function gotoHash(){ var m = /[#&]q=([^&]+)/.exec(location.hash); if (!m) return false; var id = decodeURIComponent(m[1]); if (!BY[id]) return false;
+  S.view = 'practice'; S.f = { ch:'all', src:[], st:'all' }; listCache = null; var j = currentList().indexOf(id); if (j < 0) return false; posSet(j); cur = null; render(); return true; }
+window.addEventListener('hashchange', gotoHash);
+if (!gotoHash()) render();
 if (S.migrated && !S.migratedShown) { toast('已从旧版题库导入 ' + S.migrated + ' 条记录'); S.migratedShown = true; save(); }
 })();
 </script>
