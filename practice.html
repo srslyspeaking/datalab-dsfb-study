@@ -160,7 +160,15 @@ details.sec summary{cursor:pointer;font-weight:600;padding:8px 0;color:var(--mut
 .search{flex:1 1 240px;border:1px solid var(--line);border-radius:999px;padding:9px 14px;font-size:15px;background:#fff;min-width:0}
 .tokin{flex:1 1 200px;min-width:0;border:1px solid var(--line);border-radius:999px;padding:9px 14px;font-size:14px;background:#fff}
 ol.steps{margin:0 0 10px;padding-left:20px;font-size:13.5px;line-height:1.7}
-@media(max-width:640px){.chgrid{grid-template-columns:1fr 1fr}.chcard{padding:9px 10px 11px}.chcard b{font-size:13px}.chbtn{flex:1 1 100%;text-align:left}}
+.aibtn{position:relative;display:inline-flex}
+.tool.ai{border-color:var(--ink);background:var(--ink);color:#fff}
+.aibtn .tool.ai:first-child{border-top-right-radius:0;border-bottom-right-radius:0;margin-right:0}
+.aibtn .tool.ai.more{border-top-left-radius:0;border-bottom-left-radius:0;border-left:1px solid rgba(255,255,255,.25);padding-left:9px;padding-right:9px;margin-left:0}
+.aipop{position:absolute;left:0;max-width:calc(100vw - 32px);bottom:calc(100% + 6px);z-index:30;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.14);padding:6px;display:flex;flex-direction:column;min-width:190px}
+.aipop button{border:0;background:none;text-align:left;padding:9px 10px;border-radius:8px;font-size:14px;cursor:pointer;color:var(--ink)}
+.aipop button:hover,.aipop button.on{background:var(--cream)}
+.aipop small{color:var(--muted);font-size:11.5px;padding:4px 10px 2px}
+@media(max-width:640px){.aipop{left:0;right:auto}.chgrid{grid-template-columns:1fr 1fr}.chcard{padding:9px 10px 11px}.chcard b{font-size:13px}.chbtn{flex:1 1 100%;text-align:left}}
 @media(max-width:640px){.svgw svg{min-width:440px}}
 ul.fx{margin:6px 0 0;padding:10px 14px 10px 30px;background:var(--cream);border-radius:8px;font-size:13.5px;line-height:1.75}
 ul.fx li{margin:2px 0}
@@ -226,7 +234,7 @@ figure.slide figcaption{font-size:12px;color:var(--muted);margin-top:6px}
     <button class="btn ghost" id="resetBtn">清空所有记录</button>
   </div>
   <p class="kbd">进度和笔记随时保存在这个浏览器里；开了自动同步就会同时存到你的 GitHub。也可以“导出进度”文件留个备份。<br>
-  键盘：<code>A</code>–<code>D</code> 或 <code>1</code>–<code>4</code> 选择 · <code>←</code> <code>→</code> 换题 · <code>空格</code> 看答案 · <code>R</code> 重做本题 · <code>S</code> 收藏 · <code>N</code> 写笔记。手机上左右滑动换题。</p>
+  键盘：<code>A</code>–<code>D</code> 或 <code>1</code>–<code>4</code> 选择 · <code>←</code> <code>→</code> 换题 · <code>空格</code> 看答案 · <code>R</code> 重做本题 · <code>S</code> 收藏 · <code>N</code> 写笔记 · <code>A</code> 问 AI。手机上左右滑动换题。</p>
   <div class="row"><button class="btn" id="closeSettings">完成</button></div>
 </div></div>
 
@@ -610,6 +618,7 @@ function renderQuestion(){
     h += '</div>';
   }
   h += '<div class="tools">' +
+    '<span class="aibtn"><button class="tool ai" data-act="ai">🤖 问 ' + AIS[aiPick()].name + '</button><button class="tool ai more" data-act="aimenu" aria-label="换一个 AI">▾</button></span>' +
     (cur.reveal || cur.pick === q.a ? '' : '<button class="tool" data-act="reveal">👀 看答案</button>') +
     '<button class="tool" data-act="redo">↺ 重做本题</button>' +
     '<button class="tool' + (r.fav ? ' on' : '') + '" data-act="fav">' + (r.fav ? '★ 已收藏' : '☆ 收藏') + '</button>' +
@@ -683,6 +692,44 @@ function renderNotes(){
     var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([md], { type:'text/markdown' })); a.download = 'DSFB-笔记-' + new Date().toISOString().slice(0, 10) + '.md'; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 500); toast('笔记已导出'); };
 }
 
+/* ---------- ask an AI about this question (opens the AI with the prompt prefilled) ---------- */
+var AIS = {
+  claude:  { name:'Claude',  url:function(t){ return 'https://claude.ai/new?q=' + encodeURIComponent(t); } },
+  chatgpt: { name:'ChatGPT', url:function(t){ return 'https://chatgpt.com/?q=' + encodeURIComponent(t); } },
+  copy:    { name:'复制提问', url:null }
+};
+function aiPick(){ return AIS[S.set.ai] ? S.set.ai : 'claude'; }
+function aiPrompt(q){
+  var L = 'ABCD', mine = cur && cur.first !== null ? cur.first : (cur ? cur.pick : null);
+  var t = '我在复习 KU Leuven 的 Data Science for Business（DSFB）课程，下面这道选择题我没看懂。请用通俗易懂的中文给我讲明白（专业术语保留英文），像老师一对一辅导那样：\n' +
+    '1. 先用一两句话说清这题在考哪个知识点；\n2. 逐个选项说明对错和原因' + (mine !== null && mine !== q.a ? '，重点讲我选的 ' + L[mine] + ' 错在哪、我可能混淆了什么' : '') + '；\n' +
+    '3. 如果涉及公式或计算，把每一步算出来；\n4. 最后给一个商业场景的小例子，和一句考试时的判断口诀。\n\n';
+  t += '【章节】' + (CH[q.l] || q.l) + (q.p ? '（课件第 ' + q.p + ' 页' + (q.t ? '：' + q.t : '') + '）' : '') + '\n';
+  if (q.story) t += '【情境】' + q.story + '\n';
+  t += '【题目】' + q.q + '\n' + (q.qz && q.qz !== q.q ? '（中文：' + q.qz + '）\n' : '');
+  q.o.forEach(function(o, k){ t += L[k] + '. ' + o + (q.oz && q.oz[k] && q.oz[k] !== o ? '（' + q.oz[k] + '）' : '') + '\n'; });
+  if (mine !== null) t += '【我的答案】' + L[mine] + '\n';
+  t += '【正确答案】' + L[q.a] + '\n';
+  if (q.e) t += '【题库解析】' + q.e + '\n';
+  var r = peek(q.i); if (hasNote(r)) t += '【我之前的笔记】' + r.note.trim() + '\n';
+  return t.length > 6000 ? t.slice(0, 6000) : t;
+}
+function askAI(which){
+  if (!cur) return; var q = BY[cur.id]; which = which || aiPick();
+  var t = aiPrompt(q);
+  var copied = navigator.clipboard ? navigator.clipboard.writeText(t).then(function(){ return true; }, function(){ return false; }) : Promise.resolve(false);
+  if (!AIS[which].url) { copied.then(function(ok){ if (ok) toast('提问已复制，粘贴到任意 AI 即可'); else prompt('复制下面的提问：', t); }); return; }
+  window.open(AIS[which].url(t), '_blank', 'noopener');
+  copied.then(function(ok){ toast('已在 ' + AIS[which].name + ' 打开' + (ok ? '；如果输入框是空的，直接粘贴即可' : '')); });
+}
+function aiMenu(btn){
+  var old = $('#aiPop'); if (old) { old.remove(); return; }
+  var h = '<div class="aipop" id="aiPop">' + Object.keys(AIS).map(function(k){ return '<button data-ai="' + k + '"' + (k === aiPick() ? ' class="on"' : '') + '>' + (k === 'copy' ? '📋 ' : '🤖 ') + AIS[k].name + (k === aiPick() ? ' ✓' : '') + '</button>'; }).join('') + '<small>选过的会记住，下次直接点“问 AI”</small></div>';
+  btn.parentNode.insertAdjacentHTML('beforeend', h);
+  [].forEach.call(document.querySelectorAll('#aiPop [data-ai]'), function(b){ b.onclick = function(e){ e.stopPropagation(); S.set.ai = b.dataset.ai; save(); $('#aiPop').remove(); renderQuestion(); askAI(b.dataset.ai); }; });
+}
+document.addEventListener('click', function(e){ var p = $('#aiPop'); if (p && !e.target.closest('.aibtn')) p.remove(); });
+
 /* ---------- events ---------- */
 function bind(){
   var fCh = $('#fCh'); if (fCh) fCh.onchange = function(){ S.f.ch = this.value; listCache = null; cur = null; save(); render(); };
@@ -705,6 +752,8 @@ document.addEventListener('click', function(e){
   if (a === 'lesson') return openLesson(BY[cur.id]);
   if (a === 'slide') { cur.slide = true; return renderQuestion(); }
   if (a === 'note') return openNote();
+  if (a === 'ai') return askAI();
+  if (a === 'aimenu') return aiMenu(t);
   if (t.id === 'chBtn') { S.chOpen = !S.chOpen; save(); return render(); }
   if (t.dataset.ch) { S.f.ch = t.dataset.ch; S.chOpen = false; listCache = null; cur = null; save(); render(); toast((t.dataset.ch === 'all' ? '全部章节' : CH[t.dataset.ch]) + (S.set.shuffle ? '，随机顺序' : '，按顺序')); return; }
   if (t.dataset.ord) { var o = t.dataset.ord; if (o === 're' || (o === 'x' && !S.set.shuffle)) S.seed = Date.now() % 100000; S.set.shuffle = o !== 's'; listCache = null; cur = null; save(); render(); if (o === 're') toast('已重新洗牌，从第 1 题开始'); return; }
@@ -749,6 +798,7 @@ document.addEventListener('keydown', function(e){
   else if (k === 'r') redo();
   else if (k === 's') toggleFav();
   else if (k === 'n') { openNote(); e.preventDefault(); }
+  else if (k === 'a') askAI();
 });
 var sx = null, sy = null;
 document.addEventListener('touchstart', function(e){ if (e.touches.length === 1 && e.target.closest('#qcard') && !e.target.closest('textarea')) { sx = e.touches[0].clientX; sy = e.touches[0].clientY; } else sx = null; }, { passive:true });
